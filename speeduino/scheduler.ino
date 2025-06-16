@@ -99,7 +99,8 @@ void initialiseSchedulers()
     ignitionSchedule8.schedulesSet = 0;
 
     //****************** [PJSC v1.01] Set PWM frequency for Solenoid mode ***************************
-    if (configPage2.squirtDeviceType == 1) //Check squirt device
+//[PJSC v1.03]    if (configPage2.squirtDeviceType == 1) //Check squirt device
+    if ( configPage2.squirtDeviceTypeCh1 == 1 || configPage2.squirtDeviceTypeCh2 == 1 || configPage2.squirtDeviceTypeCh3 == 1 || configPage2.squirtDeviceTypeCh4 == 1 ) //[PJSC v1.03] Check squirt device
     {
       for (unsigned int numInj = 0; numInj < NUM_SQUIRT_DEVICE; numInj++)
       {
@@ -158,7 +159,6 @@ void setFuelSchedule(struct Schedule *targetSchedule, unsigned long timeout, uns
     targetSchedule->hasNextSchedule = true;
   }
 }
-
 
 //void setFuelSchedule1(void (*startCallback)(), unsigned long timeout, unsigned long duration, void(*endCallback)())
 void setFuelSchedule1(unsigned long timeout, unsigned long duration)
@@ -723,10 +723,11 @@ ISR(TIMER3_COMPA_vect) //fuelSchedules 1 and 5
 static inline void fuelSchedule1Interrupt() //Most ARM chips can simply call a function
 #endif
   {
-    if ( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE)) { injTstPulseToggle1(); }                                   //[PJSC v1.01]The interrupt to control the Pulse output test mode
-    else if ( configPage2.squirtDeviceType == 1 || BIT_CHECK(currentStatus.testMode, BIT_TEST_PWM)) { pjsc1Toggle(); }  //[PJSC v1.01]The interrupt to control the PJSC PWM
-    else                                                                                                                //[PJSC v1.01]
-    {                                                                                                                   //[PJSC v1.01]
+    if ( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE)) { injTstPulseToggle1(); }                                                 //[PJSC v1.01]The interrupt to control the Pulse output test mode
+//[PJSC v1.03]    else if ( configPage2.squirtDeviceType == 1 || BIT_CHECK(currentStatus.testMode, BIT_TEST_PWM)) { pjsc1Toggle(); }  //[PJSC v1.01]The interrupt to control the PJSC PWM
+    else if ( configPage2.squirtDeviceTypeCh1 == 1 || BIT_CHECK(currentStatus.testMode, BIT_TEST_PWM)) { pjsc1Toggle(); }             //[PJSC v1.03]The interrupt to control the PJSC PWM
+    else                                                                                                                              //[PJSC v1.01]
+    {                                                                                                                                 //[PJSC v1.01]
       if (fuelSchedule1.Status == PENDING) //Check to see if this schedule is turn on
       {
         //To use timer queue, change fuelShedule1 to timer3Aqueue[0];
@@ -767,16 +768,18 @@ ISR(TIMER3_COMPB_vect) //fuelSchedule2
 static inline void fuelSchedule2Interrupt() //Most ARM chips can simply call a function
 #endif
   {
-    if ( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE)) { injTstPulseToggle2(); }                                   //[PJSC v1.01]The interrupt to control the Pulse output test mode
-    else if ( configPage2.squirtDeviceType == 1 || BIT_CHECK(currentStatus.testMode, BIT_TEST_PWM)) { pjsc2Toggle(); }  //[PJSC v1.01]The interrupt to control the PJSC PWM
-    else                                                                                                                //[PJSC v1.01]
-    {                                                                                                                   //[PJSC v1.01]
+    if ( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE)) { injTstPulseToggle2(); }                                                 //[PJSC v1.01]The interrupt to control the Pulse output test mode
+//[PJSC v1.03]    else if ( configPage2.squirtDeviceType == 1 || BIT_CHECK(currentStatus.testMode, BIT_TEST_PWM)) { pjsc2Toggle(); }  //[PJSC v1.01]The interrupt to control the PJSC PWM
+    else if ( configPage2.squirtDeviceTypeCh2 == 1 || BIT_CHECK(currentStatus.testMode, BIT_TEST_PWM)) { pjsc2Toggle(); }             //[PJSC v1.03]The interrupt to control the PJSC PWM
+    else                                                                                                                              //[PJSC v1.01]
+    {                                                                                                                                 //[PJSC v1.01]
       if (fuelSchedule2.Status == PENDING) //Check to see if this schedule is turn on
       {
         //fuelSchedule2.StartCallback();
 //[PJSC v1.02]        if (configPage2.injLayout == INJ_SEMISEQUENTIAL) { openInjector2and3(); }
-        if ( (configPage2.injLayout == INJ_SEMISEQUENTIAL) && (configPage2.nCylinders == 4) ) { openInjector2and3(); }  //[PJSC v1.02]
-        else { openInjector2(); }
+//[PJSC v1.03]        if ( (configPage2.injLayout == INJ_SEMISEQUENTIAL) && (configPage2.nCylinders == 4) ) { openInjector2and3(); }  //[PJSC v1.02]
+//[PJSC v1.03]        else { openInjector2(); }
+        openInjector2();                                                                                                              //[PJSC v1.03]
         fuelSchedule2.Status = RUNNING; //Set the status to be in progress (ie The start callback has been called, but not the end callback)
         FUEL2_COMPARE = FUEL2_COUNTER + uS_TO_TIMER_COMPARE_SLOW(fuelSchedule2.duration); //Doing this here prevents a potential overflow on restarts
       }
@@ -784,8 +787,9 @@ static inline void fuelSchedule2Interrupt() //Most ARM chips can simply call a f
       {
          //fuelSchedule2.EndCallback();
 //[PJSC v1.02]         if (configPage2.injLayout == INJ_SEMISEQUENTIAL) { closeInjector2and3(); }
-         if ( (configPage2.injLayout == INJ_SEMISEQUENTIAL) && (configPage2.nCylinders == 4) ) { closeInjector2and3(); } //[PJSC v1.02]
-         else { closeInjector2(); }
+//[PJSC v1.03]         if ( (configPage2.injLayout == INJ_SEMISEQUENTIAL) && (configPage2.nCylinders == 4) ) { closeInjector2and3(); } //[PJSC v1.02]
+//[PJSC v1.03]         else { closeInjector2(); }
+         closeInjector2();                                                                                                             //[PJSC v1.03]
          fuelSchedule2.Status = OFF; //Turn off the schedule
          fuelSchedule2.schedulesSet = 0;
 
@@ -809,10 +813,11 @@ ISR(TIMER3_COMPC_vect) //fuelSchedule3
 static inline void fuelSchedule3Interrupt() //Most ARM chips can simply call a function
 #endif
   {
-    if ( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE)) { injTstPulseToggle3(); }                                   //[PJSC v1.01]The interrupt to control the Pulse output test mode
-    else if ( configPage2.squirtDeviceType == 1 || BIT_CHECK(currentStatus.testMode, BIT_TEST_PWM)) { pjsc3Toggle(); }  //[PJSC v1.01]The interrupt to control the PJSC PWM
-    else                                                                                                                //[PJSC v1.01]
-    {                                                                                                                   //[PJSC v1.01]
+    if ( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE)) { injTstPulseToggle3(); }                                                 //[PJSC v1.01]The interrupt to control the Pulse output test mode
+//[PJSC v1.03]    else if ( configPage2.squirtDeviceType == 1 || BIT_CHECK(currentStatus.testMode, BIT_TEST_PWM)) { pjsc3Toggle(); }  //[PJSC v1.01]The interrupt to control the PJSC PWM
+    else if ( configPage2.squirtDeviceTypeCh3 == 1 || BIT_CHECK(currentStatus.testMode, BIT_TEST_PWM)) { pjsc3Toggle(); }             //[PJSC v1.03]The interrupt to control the PJSC PWM
+    else                                                                                                                              //[PJSC v1.01]
+    {                                                                                                                                 //[PJSC v1.01]
       if (fuelSchedule3.Status == PENDING) //Check to see if this schedule is turn on
       {
         //fuelSchedule3.StartCallback();
@@ -827,7 +832,7 @@ static inline void fuelSchedule3Interrupt() //Most ARM chips can simply call a f
          //fuelSchedule3.EndCallback();
          //Hack for 5 cylinder
          if(channel5InjEnabled) { closeInjector3and5(); }
-         else { closeInjector3and5(); }
+         else { closeInjector3(); }
          fuelSchedule3.Status = OFF; //Turn off the schedule
          fuelSchedule3.schedulesSet = 0;
 
@@ -851,10 +856,11 @@ ISR(TIMER4_COMPB_vect) //fuelSchedule4
 static inline void fuelSchedule4Interrupt() //Most ARM chips can simply call a function
 #endif
   {
-    if ( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE)) { injTstPulseToggle4(); }                                   //[PJSC v1.01]The interrupt to control the Pulse output test mode
-    else if ( configPage2.squirtDeviceType == 1 || BIT_CHECK(currentStatus.testMode, BIT_TEST_PWM)) { pjsc4Toggle(); }  //[PJSC v1.01]The interrupt to control the PJSC PWM
-    else                                                                                                                //[PJSC v1.01]
-    {                                                                                                                   //[PJSC v1.01]
+    if ( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE)) { injTstPulseToggle4(); }                                                 //[PJSC v1.01]The interrupt to control the Pulse output test mode
+//[PJSC v1.03]    else if ( configPage2.squirtDeviceType == 1 || BIT_CHECK(currentStatus.testMode, BIT_TEST_PWM)) { pjsc4Toggle(); }  //[PJSC v1.01]The interrupt to control the PJSC PWM
+    else if ( configPage2.squirtDeviceTypeCh4 == 1 || BIT_CHECK(currentStatus.testMode, BIT_TEST_PWM)) { pjsc4Toggle(); }             //[PJSC v1.03]The interrupt to control the PJSC PWM
+    else                                                                                                                              //[PJSC v1.01]
+    {                                                                                                                                 //[PJSC v1.01]
       if (fuelSchedule4.Status == PENDING) //Check to see if this schedule is turn on
       {
         //fuelSchedule4.StartCallback();
@@ -1257,11 +1263,11 @@ static inline void ignitionSchedule8Interrupt() //Most ARM chips can simply call
 //The control function to set PWM output to injector output channel.
 void pjscControl()
 {
-  if( currentStatus.testOutputs == 0 )     //[PJSC v1.01]
-  {                                           //[PJSC v1.01]
-    if( configPage2.squirtDeviceType == 1 )
+  if( currentStatus.testOutputs == 0 )
+  {
+//[PJSC v1.03]    if( configPage2.squirtDeviceType == 1 )
+    if( configPage2.squirtDeviceTypeCh1 == 1 || configPage2.squirtDeviceTypeCh2 == 1 || configPage2.squirtDeviceTypeCh3 == 1 || configPage2.squirtDeviceTypeCh4 == 1 )     //[PJSC v1.03]
     {
-//[PJSC v1.01]      pjsc_pwm_max_count = 1000000L / (16 * configPage2.pjscFreq * 2); //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
       for (unsigned int numInj = 0; numInj < NUM_SQUIRT_DEVICE; numInj++)             //[PJSC v1.01]
       {                                                                               //[PJSC v1.01]
         pjsc_pwm_max_count[numInj] = 1000000L / (16 * configPage2.pjscFreq * 2);      //[PJSC v1.01]
@@ -1285,22 +1291,23 @@ void pjscControl()
             if( currentStatus.mapSelectSw ) { dualFuelLoadVE = selectVE(currentStatus.veMapSelectionSw2Sec[numVe]); }
             else { dualFuelLoadVE = selectVE(currentStatus.veMapSelectionSw1Sec[numVe]); }
 
-            dualFuelLoadVE += (unsigned int)tempVEvalue[numVe];
             if ( configPage2.secondaryFuelUsage )         // Additive
             {
-              if( dualFuelLoadVE > 100 ) { dualFuelLoadVE = 100; }
+              dualFuelLoadVE += (unsigned int)tempVEvalue[numVe];
             }
             else                                          // Multiply VE
             {
-              dualFuelLoadVE = dualFuelLoadVE >> 1;
+              dualFuelLoadVE = dualFuelLoadVE * (unsigned int)tempVEvalue[numVe] / 100;
             }
+
+            if( dualFuelLoadVE > 100 ) { dualFuelLoadVE = 100; }
 
             tempVEvalue[numVe] = (byte)dualFuelLoadVE;
           }
 
-          if ( configPage2.fuelCorrectionEnabled ) { intermediate = (unsigned long)tempVEvalue[numVe] * (unsigned long)currentStatus.corrections / 100; }       //[PJSC v1.01]
-          else { intermediate = (unsigned long)tempVEvalue[numVe]; }                                                                                            //[PJSC v1.01]
-//[PJSC v1.01]          intermediate = (unsigned long)tempVEvalue[numVe] * (unsigned long)currentStatus.corrections / 100;
+//[PJSC v1.03]          if ( configPage2.fuelCorrectionEnabled ) { intermediate = (unsigned long)tempVEvalue[numVe] * (unsigned long)currentStatus.corrections / 100; }       //[PJSC v1.01]
+//[PJSC v1.03]          else { intermediate = (unsigned long)tempVEvalue[numVe]; }                                                                                            //[PJSC v1.01]
+          intermediate = (unsigned long)tempVEvalue[numVe] * (unsigned long)currentStatus.corrections / 100;                       //[PJSC v1.03]
 
           if ( configPage2.multiVEmapEnabled && configPage2.mapSeparationEnabled ) 
           {
@@ -1315,10 +1322,19 @@ void pjscControl()
           }
         }
 
-        setPjsc1Duty();              //[PJSC v1.01]
-        setPjsc2Duty();              //[PJSC v1.01]
-        setPjsc3Duty();              //[PJSC v1.01]
-        setPjsc4Duty();              //[PJSC v1.01]
+//[PJSC v1.03]        setPjsc1Duty();              //[PJSC v1.01]
+//[PJSC v1.03]        setPjsc2Duty();              //[PJSC v1.01]
+//[PJSC v1.03]        setPjsc3Duty();              //[PJSC v1.01]
+//[PJSC v1.03]        setPjsc4Duty();              //[PJSC v1.01]
+        if( configPage2.squirtDeviceTypeCh1 == 1 ) { setPjsc1Duty(); }    //[PJSC v1.03]
+        if( configPage2.squirtDeviceTypeCh2 == 1 ) { setPjsc2Duty(); }    //[PJSC v1.03]
+        if( configPage2.squirtDeviceTypeCh3 == 1 ) { setPjsc3Duty(); }    //[PJSC v1.03]
+        if( configPage2.squirtDeviceTypeCh4 == 1 ) { setPjsc4Duty(); }    //[PJSC v1.03]
+
+        currentStatus.dualVE1 = tempVEvalue[0];
+        currentStatus.dualVE2 = tempVEvalue[1];
+        currentStatus.dualVE3 = tempVEvalue[2];
+        currentStatus.dualVE4 = tempVEvalue[3];
       }
       else
       {
@@ -1345,13 +1361,17 @@ void pjsc1Toggle()
 {
   if (pjsc_pwm_state[CH_INJ1])
   {
-    closeInjector1();
+    if( configPage2.solenoidValveDirectionCh1 == 1 ) { openInjector1(); }     //[PJSC v1.03]
+    else { closeInjector1(); }                                                //[PJSC v1.03]
+//[PJSC v1.03]    closeInjector1();
     FUEL1_COMPARE = FUEL1_COUNTER + (pjsc_pwm_max_count[CH_INJ1] - pjsc_pwm_cur_value[CH_INJ1]);
     pjsc_pwm_state[CH_INJ1] = false;
   }
   else
   {
-    openInjector1();
+    if( configPage2.solenoidValveDirectionCh1 == 1 ) { closeInjector1(); }    //[PJSC v1.03]
+    else { openInjector1(); }                                                 //[PJSC v1.03]
+//[PJSC v1.03]    openInjector1();
     FUEL1_COMPARE = FUEL1_COUNTER + pjsc_pwm_target_value[CH_INJ1];
     pjsc_pwm_cur_value[CH_INJ1] = pjsc_pwm_target_value[CH_INJ1];
     pjsc_pwm_state[CH_INJ1] = true;
@@ -1363,13 +1383,17 @@ void pjsc2Toggle()
 {
   if (pjsc_pwm_state[CH_INJ2])
   {
-    closeInjector2();
+    if( configPage2.solenoidValveDirectionCh2 == 1 ) { openInjector2(); }     //[PJSC v1.03]
+    else { closeInjector2(); }                                                //[PJSC v1.03]
+//[PJSC v1.03]    closeInjector2();
     FUEL2_COMPARE = FUEL2_COUNTER + (pjsc_pwm_max_count[CH_INJ2] - pjsc_pwm_cur_value[CH_INJ2]);
     pjsc_pwm_state[CH_INJ2] = false;
   }
   else
   {
-    openInjector2();
+    if( configPage2.solenoidValveDirectionCh2 == 1 ) { closeInjector2(); }    //[PJSC v1.03]
+    else { openInjector2(); }                                                 //[PJSC v1.03]
+//[PJSC v1.03]    openInjector2();
     FUEL2_COMPARE = FUEL2_COUNTER + pjsc_pwm_target_value[CH_INJ2];
     pjsc_pwm_cur_value[CH_INJ2] = pjsc_pwm_target_value[CH_INJ2];
     pjsc_pwm_state[CH_INJ2] = true;
@@ -1381,13 +1405,17 @@ void pjsc3Toggle()
 {
   if (pjsc_pwm_state[CH_INJ3])
   {
-    closeInjector3();
+    if( configPage2.solenoidValveDirectionCh3 == 1 ) { openInjector3(); }     //[PJSC v1.03]
+    else { closeInjector3(); }                                                //[PJSC v1.03]
+//[PJSC v1.03]    closeInjector3();
     FUEL3_COMPARE = FUEL3_COUNTER + (pjsc_pwm_max_count[CH_INJ3] - pjsc_pwm_cur_value[CH_INJ3]);
     pjsc_pwm_state[CH_INJ3] = false;
   }
   else
   {
-    openInjector3();
+    if( configPage2.solenoidValveDirectionCh3 == 1 ) { closeInjector3(); }    //[PJSC v1.03]
+    else { openInjector3(); }                                                 //[PJSC v1.03]
+//[PJSC v1.03]    openInjector3();
     FUEL3_COMPARE = FUEL3_COUNTER + pjsc_pwm_target_value[CH_INJ3];
     pjsc_pwm_cur_value[CH_INJ3] = pjsc_pwm_target_value[CH_INJ3];
     pjsc_pwm_state[CH_INJ3] = true;
@@ -1399,13 +1427,17 @@ void pjsc4Toggle()
 {
   if (pjsc_pwm_state[CH_INJ4])
   {
-    closeInjector4();
+    if( configPage2.solenoidValveDirectionCh4 == 1 ) { openInjector4(); }     //[PJSC v1.03]
+    else { closeInjector4(); }                                                //[PJSC v1.03]
+//[PJSC v1.03]    closeInjector4();
     FUEL4_COMPARE = FUEL4_COUNTER + (pjsc_pwm_max_count[CH_INJ4] - pjsc_pwm_cur_value[CH_INJ4]);
     pjsc_pwm_state[CH_INJ4] = false;
   }
   else
   {
-    openInjector4();
+    if( configPage2.solenoidValveDirectionCh4 == 1 ) { closeInjector4(); }    //[PJSC v1.03]
+    else { openInjector4(); }                                                 //[PJSC v1.03]
+//[PJSC v1.03]    openInjector4();
     FUEL4_COMPARE = FUEL4_COUNTER + pjsc_pwm_target_value[CH_INJ4];
     pjsc_pwm_cur_value[CH_INJ4] = pjsc_pwm_target_value[CH_INJ4];
     pjsc_pwm_state[CH_INJ4] = true;

@@ -197,7 +197,8 @@ void command()
 
     case 'Q': // send code version
 //[PJSC v1.02]      Serial.print(F("PJSC v102"));
-      Serial.print(F("speeduino 201902"));
+//[PJSC v1.03]      Serial.print(F("speeduino 201902"));
+      Serial.print(F("speeduino 201905"));                   //[PJSC v1.03]
       break;
 
     case 'r': //New format for the optimised OutputChannels
@@ -228,7 +229,8 @@ void command()
 
     case 'S': // send code version
 //[PJSC v1.02]      Serial.print(F("PJSC v102"));
-      Serial.print(F("Speeduino 2019.02"));
+//[PJSC v1.03]      Serial.print(F("Speeduino 2019.02"));
+      Serial.print(F("Speeduino 2019.05"));                  //[PJSC v1.03]
       currentStatus.secl = 0; //This is required in TS3 due to its stricter timings
       break;
 
@@ -476,13 +478,17 @@ void sendValues(uint16_t offset, uint16_t packetLength, byte cmd, byte portNum)
   fullStatus[14] = lowByte(currentStatus.RPM); //rpm HB
   fullStatus[15] = highByte(currentStatus.RPM); //rpm LB
   fullStatus[16] = (byte)(currentStatus.TAEamount >> 1); //TPS acceleration enrichment (%) divided by 2 (Can exceed 255)
-  fullStatus[17] = currentStatus.corrections; //Total GammaE (%)
-  fullStatus[18] = currentStatus.VE; //Current VE 1 (%)
+//[PJSC v1.03]  fullStatus[17] = currentStatus.corrections; //Total GammaE (%)
+//[PJSC v1.03]  fullStatus[18] = currentStatus.VE; //Current VE 1 (%)
+  fullStatus[17] = lowByte(currentStatus.corrections); //Total GammaE (%)     //[PJSC v1.03]
+  fullStatus[18] = highByte(currentStatus.corrections); //Total GammaE (%)    //[PJSC v1.03]
   fullStatus[19] = currentStatus.afrTarget;
   fullStatus[20] = lowByte(currentStatus.PW1); //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
   fullStatus[21] = highByte(currentStatus.PW1); //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
-  fullStatus[22] = currentStatus.tpsDOT; //TPS DOT
-  fullStatus[23] = currentStatus.advance;
+//[PJSC v1.03]  fullStatus[22] = currentStatus.tpsDOT; //TPS DOT
+//[PJSC v1.03]  fullStatus[23] = currentStatus.advance;
+  fullStatus[22] = lowByte(currentStatus.tpsDOT);           //[PJSC v1.03] suport negative TPS DOT
+  fullStatus[23] = highByte(currentStatus.tpsDOT);          //[PJSC v1.03] suport negative TPS DOT
   fullStatus[24] = currentStatus.TPS; // TPS (0% to 100%)
   //Need to split the int loopsPerSecond value into 2 bytes
   fullStatus[25] = lowByte(currentStatus.loopsPerSecond);
@@ -567,32 +573,57 @@ void sendValues(uint16_t offset, uint16_t packetLength, byte cmd, byte portNum)
   fullStatus[88] = highByte(currentStatus.ignLoad);
   fullStatus[89] = currentStatus.syncLossCounter;
 
-  fullStatus[90] = currentStatus.VE2;                       //[PJSC]Multi VE Map support
-  fullStatus[91] = currentStatus.VE3;                       //[PJSC]Multi VE Map support
-  fullStatus[92] = currentStatus.VE4;                       //[PJSC]Multi VE Map support
-  fullStatus[93] = currentStatus.exValvePosition;           //[PJSC]Extend serial data for External Trigger
-  fullStatus[94] = currentStatus.exValvePositionADC;        //[PJSC]Extend serial data for External Trigger
-  fullStatus[95] = lowByte(currentStatus.extTriggerAngle);  //[PJSC]Extend serial data for External Trigger
-  fullStatus[96] = highByte(currentStatus.extTriggerAngle); //[PJSC]Extend serial data for External Trigger
-  fullStatus[97] = lowByte(currentStatus.dutyFreq);         //[PJSC] For capturing duty pulse
-  fullStatus[98] = highByte(currentStatus.dutyFreq);        //[PJSC] For capturing duty pulse
-  fullStatus[99] = lowByte(currentStatus.dutyRatio);        //[PJSC] For capturing duty pulse
-  fullStatus[100] = highByte(currentStatus.dutyRatio);      //[PJSC] For capturing duty pulse
-  fullStatus[101] = lowByte(currentStatus.dutyFreq2);       //[PJSC] For capturing duty pulse
-  fullStatus[102] = highByte(currentStatus.dutyFreq2);      //[PJSC] For capturing duty pulse
-  fullStatus[103] = lowByte(currentStatus.dutyRatio2);      //[PJSC] For capturing duty pulse
-  fullStatus[104] = highByte(currentStatus.dutyRatio2);     //[PJSC] For capturing duty pulse
-  fullStatus[105] = lowByte(currentStatus.testCnt);         //[PJSC v1.01] For test mode
-  fullStatus[106] = highByte(currentStatus.testCnt);        //[PJSC v1.01] For test mode
-  fullStatus[107] = currentStatus.O2_2;                     //[PJSC v1.01] O2
-  fullStatus[108] = lowByte(currentStatus.fuelLoad2);       //[PJSC v1.01] For Secondary Fuel Load
-  fullStatus[109] = highByte(currentStatus.fuelLoad2);      //[PJSC v1.01] For Secondary Fuel Load
-  fullStatus[110] = lowByte(currentStatus.fuelLoad3);       //[PJSC v1.01] For Secondary Fuel Load
-  fullStatus[111] = highByte(currentStatus.fuelLoad3);      //[PJSC v1.01] For Secondary Fuel Load
-  fullStatus[112] = currentStatus.afr_analyze1;             //[PJSC v1.02] For AFR sensor selection
-  fullStatus[113] = currentStatus.afr_analyze2;             //[PJSC v1.02] For AFR sensor selection
-  fullStatus[114] = currentStatus.afr_analyze3;             //[PJSC v1.02] For AFR sensor selection
-  fullStatus[115] = currentStatus.afr_analyze4;             //[PJSC v1.02] For AFR sensor selection
+  //******************** [PJSC v1.03] Additional status for PJSC ********************
+  fullStatus[90] = currentStatus.VE;                        //[PJSC v1.03]Current VE 1 (%)
+  fullStatus[91] = currentStatus.VE2;                       //[PJSC]Multi VE Map support
+  fullStatus[92] = currentStatus.VE3;                       //[PJSC]Multi VE Map support
+  fullStatus[93] = currentStatus.VE4;                       //[PJSC]Multi VE Map support
+  fullStatus[94] = currentStatus.exValvePosition;           //[PJSC]Extend serial data for External Trigger
+  fullStatus[95] = currentStatus.exValvePositionADC;        //[PJSC]Extend serial data for External Trigger
+  fullStatus[96] = lowByte(currentStatus.extTriggerAngle);  //[PJSC]Extend serial data for External Trigger
+  fullStatus[97] = highByte(currentStatus.extTriggerAngle); //[PJSC]Extend serial data for External Trigger
+  fullStatus[98] = lowByte(currentStatus.extTriggerRPM);    //[PJSC v1.03]Extend serial data for External Trigger
+  fullStatus[99] = highByte(currentStatus.extTriggerRPM);   //[PJSC v1.03]Extend serial data for External Trigger
+  fullStatus[100] = lowByte(currentStatus.dutyFreq);        //[PJSC] For capturing duty pulse
+  fullStatus[101] = highByte(currentStatus.dutyFreq);       //[PJSC] For capturing duty pulse
+  fullStatus[102] = lowByte(currentStatus.dutyRatio);       //[PJSC] For capturing duty pulse
+  fullStatus[103] = highByte(currentStatus.dutyRatio);      //[PJSC] For capturing duty pulse
+  fullStatus[104] = lowByte(currentStatus.dutyFreq2);       //[PJSC] For capturing duty pulse
+  fullStatus[105] = highByte(currentStatus.dutyFreq2);      //[PJSC] For capturing duty pulse
+  fullStatus[106] = lowByte(currentStatus.dutyRatio2);      //[PJSC] For capturing duty pulse
+  fullStatus[107] = highByte(currentStatus.dutyRatio2);     //[PJSC] For capturing duty pulse
+  fullStatus[108] = lowByte(currentStatus.testCnt);         //[PJSC v1.01] For test mode
+  fullStatus[109] = highByte(currentStatus.testCnt);        //[PJSC v1.01] For test mode
+  fullStatus[110] = currentStatus.O2_2;                     //[PJSC v1.01] O2
+  fullStatus[111] = lowByte(currentStatus.fuelLoad2);       //[PJSC v1.01] For Secondary Fuel Load
+  fullStatus[112] = highByte(currentStatus.fuelLoad2);      //[PJSC v1.01] For Secondary Fuel Load
+  fullStatus[113] = lowByte(currentStatus.fuelLoad3);       //[PJSC v1.01] For Secondary Fuel Load
+  fullStatus[114] = highByte(currentStatus.fuelLoad3);      //[PJSC v1.01] For Secondary Fuel Load
+  fullStatus[115] = currentStatus.afr_analyze1;             //[PJSC v1.02] For AFR sensor selection
+  fullStatus[116] = currentStatus.afr_analyze2;             //[PJSC v1.02] For AFR sensor selection
+  fullStatus[117] = currentStatus.afr_analyze3;             //[PJSC v1.02] For AFR sensor selection
+  fullStatus[118] = currentStatus.afr_analyze4;             //[PJSC v1.02] For AFR sensor selection
+  fullStatus[119] = currentStatus.dualVE1;                  //[PJSC v1.03] For Dual Fuel Load
+  fullStatus[120] = currentStatus.dualVE2;                  //[PJSC v1.03] For Dual Fuel Load
+  fullStatus[121] = currentStatus.dualVE3;                  //[PJSC v1.03] For Dual Fuel Load
+  fullStatus[122] = currentStatus.dualVE4;                  //[PJSC v1.03] For Dual Fuel Load
+  fullStatus[123] = lowByte(currentStatus.EGTADC);          //[PJSC v1.03] For Exhaust Gas Temperature
+  fullStatus[124] = highByte(currentStatus.EGTADC);         //[PJSC v1.03] For Exhaust Gas Temperature
+  fullStatus[125] = lowByte(currentStatus.ignGap);          //[PJSC v1.03] For misfire detection
+  fullStatus[126] = highByte(currentStatus.ignGap);         //[PJSC v1.03] For misfire detection
+  fullStatus[127] = lowByte(currentStatus.sparkRPM);        //[PJSC v1.03] For misfire detection
+  fullStatus[128] = highByte(currentStatus.sparkRPM);       //[PJSC v1.03] For misfire detection
+  fullStatus[129] = lowByte(currentStatus.viecleSpeed);     //[PJSC v1.03] For capturing viecle speed
+  fullStatus[130] = highByte(currentStatus.viecleSpeed);    //[PJSC v1.03] For capturing viecle speed
+  //[PJSC v1.03_20240118_test]fullStatus[131] = lowByte((int)currentStatus.on_t);       //[PJSC v1.03] For capturing duty pulse
+  //[PJSC v1.03_20240118_test]fullStatus[132] = highByte((int)currentStatus.on_t);      //[PJSC v1.03] For capturing duty pulse
+  //[PJSC v1.03_20240118_test]fullStatus[133] = lowByte((int)currentStatus.on_t2);      //[PJSC v1.03] For capturing duty pulse
+  //[PJSC v1.03_20240118_test]fullStatus[134] = highByte((int)currentStatus.on_t2);     //[PJSC v1.03] For capturing duty pulse
+  //[PJSC v1.03_20240118_test]fullStatus[135] = currentStatus.advance;                  //[PJSC v1.03]
+  //[PJSC v1.03_20240118_test]fullStatus[136] = lowByte(req_fuel_uS);                   //[PJSC v1.03]
+  //[PJSC v1.03_20240118_test]fullStatus[137] = highByte(req_fuel_uS);                  //[PJSC v1.03]
+  fullStatus[135] = currentStatus.advance;                  //[PJSC v1.03_20240118_test]
+  //******************** [PJSC v1.03] Additional status for PJSC ********************
 
   for(byte x=0; x<packetLength; x++)
   {

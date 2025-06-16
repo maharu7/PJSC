@@ -108,11 +108,13 @@ void canCommand()
       break;
 
     case 's': // send the "a" stream code version
-      CANSerial.write("Speeduino csx02018.7");
+//[PJSC v1.03]      CANSerial.write("Speeduino csx02019.2");
+      CANSerial.write("Speeduino csx02019.5");                //[PJSC v1.03]
        break;
 
     case 'S': // send code version
-      CANSerial.write("Speeduino 2018.7-dev");
+//[PJSC v1.03]      CANSerial.write("Speeduino 2018.7-dev");
+      CANSerial.write("Speeduino 2019.5-dev");                //[PJSC v1.03]
       break;
       
     case 'Q': // send code version
@@ -166,13 +168,17 @@ void sendcanValues(uint16_t offset, uint16_t packetLength, byte cmd, byte portTy
   fullStatus[14] = lowByte(currentStatus.RPM); //rpm HB
   fullStatus[15] = highByte(currentStatus.RPM); //rpm LB
   fullStatus[16] = currentStatus.TAEamount; //acceleration enrichment (%)
-  fullStatus[17] = currentStatus.corrections; //Total GammaE (%)
-  fullStatus[18] = currentStatus.VE; //Current VE 1 (%)
+//[PJSC v1.03]  fullStatus[17] = currentStatus.corrections; //Total GammaE (%)
+//[PJSC v1.03]  fullStatus[18] = currentStatus.VE; //Current VE 1 (%)
+  fullStatus[17] = lowByte(currentStatus.corrections); //Total GammaE (%)       //[PJSC v1.03]
+  fullStatus[18] = highByte(currentStatus.corrections); //Total GammaE (%)      //[PJSC v1.03]
   fullStatus[19] = currentStatus.afrTarget;
   fullStatus[20] = lowByte(currentStatus.PW1); //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
   fullStatus[21] = highByte(currentStatus.PW1); //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
-  fullStatus[22] = currentStatus.tpsDOT; //TPS DOT
-  fullStatus[23] = currentStatus.advance;
+//[PJSC v1.03]  fullStatus[22] = currentStatus.tpsDOT; //TPS DOT
+//[PJSC v1.03]  fullStatus[23] = currentStatus.advance;
+  fullStatus[22] = lowByte(currentStatus.tpsDOT);      //[PJSC v1.03]
+  fullStatus[23] = highByte(currentStatus.tpsDOT);     //[PJSC v1.03]
   fullStatus[24] = currentStatus.TPS; // TPS (0% to 100%)
   //Need to split the int loopsPerSecond value into 2 bytes
   fullStatus[25] = lowByte(currentStatus.loopsPerSecond);
@@ -198,8 +204,10 @@ void sendcanValues(uint16_t offset, uint16_t packetLength, byte cmd, byte portTy
   fullStatus[37] = currentStatus.idleLoad;
   fullStatus[38] = currentStatus.testOutputs;
 
-  fullStatus[39] = currentStatus.O2_2; //O2
-  fullStatus[40] = currentStatus.baro; //Barometer value
+//[PJSC v1.03]  fullStatus[39] = currentStatus.O2_2; //O2
+//[PJSC v1.03]  fullStatus[40] = currentStatus.baro; //Barometer value
+  fullStatus[39] = lowByte(currentStatus.baro);      //[PJSC v1.03] Barometer value
+  fullStatus[40] = highByte(currentStatus.baro);     //[PJSC v1.03] Barometer value
 
   fullStatus[41] = lowByte(currentStatus.canin[0]);
   fullStatus[42] = highByte(currentStatus.canin[0]);
@@ -236,6 +244,75 @@ void sendcanValues(uint16_t offset, uint16_t packetLength, byte cmd, byte portTy
 
   fullStatus[73] = currentStatus.tpsADC;
   fullStatus[74] = getNextError();
+
+  //******************** [PJSC v1.03] Additional status for PJSC ********************
+  fullStatus[75] = lowByte(currentStatus.PW2);
+  fullStatus[76] = highByte(currentStatus.PW2);
+  fullStatus[77] = lowByte(currentStatus.PW3);
+  fullStatus[78] = highByte(currentStatus.PW3);
+  fullStatus[79] = lowByte(currentStatus.PW4);
+  fullStatus[80] = highByte(currentStatus.PW4);
+
+  fullStatus[81] = currentStatus.status3;
+  fullStatus[82] = lowByte(currentStatus.flexBoostCorrection);
+  fullStatus[83] = highByte(currentStatus.flexBoostCorrection);
+
+  fullStatus[84] = currentStatus.nChannels;
+  fullStatus[85] = lowByte(currentStatus.fuelLoad);
+  fullStatus[86] = highByte(currentStatus.fuelLoad);
+  fullStatus[87] = lowByte(currentStatus.ignLoad);
+  fullStatus[88] = highByte(currentStatus.ignLoad);
+  fullStatus[89] = currentStatus.syncLossCounter;
+
+  fullStatus[90] = currentStatus.VE;
+  fullStatus[91] = currentStatus.VE2;                       
+  fullStatus[92] = currentStatus.VE3;                       
+  fullStatus[93] = currentStatus.VE4;                       
+  fullStatus[94] = currentStatus.exValvePosition;           
+  fullStatus[95] = currentStatus.exValvePositionADC;        
+  fullStatus[96] = lowByte(currentStatus.extTriggerAngle);  
+  fullStatus[97] = highByte(currentStatus.extTriggerAngle); 
+  fullStatus[98] = lowByte(currentStatus.extTriggerRPM);    
+  fullStatus[99] = highByte(currentStatus.extTriggerRPM);   
+  fullStatus[100] = lowByte(currentStatus.dutyFreq);        
+  fullStatus[101] = highByte(currentStatus.dutyFreq);       
+  fullStatus[102] = lowByte(currentStatus.dutyRatio);       
+  fullStatus[103] = highByte(currentStatus.dutyRatio);      
+  fullStatus[104] = lowByte(currentStatus.dutyFreq2);       
+  fullStatus[105] = highByte(currentStatus.dutyFreq2);      
+  fullStatus[106] = lowByte(currentStatus.dutyRatio2);      
+  fullStatus[107] = highByte(currentStatus.dutyRatio2);     
+  fullStatus[108] = lowByte(currentStatus.testCnt);         
+  fullStatus[109] = highByte(currentStatus.testCnt);        
+  fullStatus[110] = currentStatus.O2_2;                     
+  fullStatus[111] = lowByte(currentStatus.fuelLoad2);       
+  fullStatus[112] = highByte(currentStatus.fuelLoad2);      
+  fullStatus[113] = lowByte(currentStatus.fuelLoad3);       
+  fullStatus[114] = highByte(currentStatus.fuelLoad3);      
+  fullStatus[115] = currentStatus.afr_analyze1;             
+  fullStatus[116] = currentStatus.afr_analyze2;             
+  fullStatus[117] = currentStatus.afr_analyze3;             
+  fullStatus[118] = currentStatus.afr_analyze4;             
+  fullStatus[119] = currentStatus.dualVE1;                  
+  fullStatus[120] = currentStatus.dualVE2;                  
+  fullStatus[121] = currentStatus.dualVE3;                  
+  fullStatus[122] = currentStatus.dualVE4;                  
+  fullStatus[123] = lowByte(currentStatus.EGTADC);          
+  fullStatus[124] = highByte(currentStatus.EGTADC);         
+  fullStatus[125] = lowByte(currentStatus.ignGap);          
+  fullStatus[126] = highByte(currentStatus.ignGap);         
+  fullStatus[127] = lowByte(currentStatus.sparkRPM);        
+  fullStatus[128] = highByte(currentStatus.sparkRPM);       
+  fullStatus[129] = lowByte(currentStatus.viecleSpeed);     
+  fullStatus[130] = highByte(currentStatus.viecleSpeed);    
+  fullStatus[131] = lowByte((int)currentStatus.on_t);       
+  fullStatus[132] = highByte((int)currentStatus.on_t);      
+  fullStatus[133] = lowByte((int)currentStatus.on_t2);      
+  fullStatus[134] = highByte((int)currentStatus.on_t2);     
+  fullStatus[135] = currentStatus.advance;                  
+  fullStatus[136] = lowByte(req_fuel_uS);                   
+  fullStatus[137] = highByte(req_fuel_uS);                  
+  //******************** [PJSC v1.03] Additional status for PJSC ********************
 
   for(byte x=0; x<packetLength; x++)
   {

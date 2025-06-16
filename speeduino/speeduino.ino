@@ -132,9 +132,6 @@ void loop()
       //This is a safety check. If for some reason the interrupts have got screwed up (Leading to 0rpm), this resets them.
       //It can possibly be run much less frequently.
       initialiseTriggers();
-      if(configPage2.exTrigModeSelect != 0) { initialiseExternalTrigger(); }              //[PJSC] For External Trigger
-      if(configPage2.dutyPulseCaptureEnabled == true) { initialiseCaptureDutyPulse(); }   //[PJSC] For capturing duty pulse
-      if(configPage2.dutyPulseCaptureEnabled2 == true) { initialiseCaptureDutyPulse2(); } //[PJSC] For capturing duty pulse
 
       if( currentStatus.testOutputs == 0 )        //[PJSC v1.01]
       {                                           //[PJSC v1.01]
@@ -212,6 +209,7 @@ void loop()
       BIT_CLEAR(TIMER_mask, BIT_TIMER_30HZ);
       //Most boost tends to run at about 30Hz, so placing it here ensures a new target time is fetched frequently enough
       boostControl();
+      if (configPage2.vvtSamplingRate) { vvtControl(); }                                    //[PJSC v1.03]
     }
 //[PJSC v1.10c]    if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_4HZ))
     if ( BIT_CHECK(LOOP_TIMER, BIT_TIMER_4HZ) && (currentStatus.testOutputs == 0) )         //[PJSC v1.01]For MUX output test mode
@@ -224,6 +222,8 @@ void loop()
 //[PJSC v1.02]      readO2_2();
       readBat();
       nitrousControl();
+      if(configPage2.analogInputPortSelection2 == ANALOG_BARO) { readBaro(); }     //[PJSC v1.03]
+      else if(configPage2.analogInputPortSelection2 == ANALOG_EGT) { readEGT(); }  //[PJSC v1.03]
 
       //*************** [PJSC v1.02] AFR sensor selection for tune analyze VE ********************
       if(configPage2.analogInputPortSelection == ANALOG_O2_SEC) { readO2_2(); }
@@ -300,14 +300,16 @@ void loop()
         } //For loop going through each channel
       } //aux channels are enabled
 
-      vvtControl();
+      if (configPage2.vvtSamplingRate == 0) { vvtControl(); }      //[PJSC v1.03]
+//[PJSC v1.03]      vvtControl();
       idleControl(); //Perform any idle related actions. Even at higher frequencies, running 4x per second is sufficient.
-      if (configPage2.squirtDeviceType == 1) { pjscControl(); }  //[PJSC]
+//[PJSC v1.03]      if (configPage2.squirtDeviceType == 1) { pjscControl(); }  //[PJSC]
+      if ( (configPage2.squirtDeviceTypeCh1 == 1) || (configPage2.squirtDeviceTypeCh2 == 1) || (configPage2.squirtDeviceTypeCh3 == 1) || (configPage2.squirtDeviceTypeCh4 == 1) ) { pjscControl(); }  //[PJSC v1.03]
     } //4Hz timer
     if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_1HZ)) //Once per second)
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_1HZ);
-      readBaro(); //Infrequent baro readings are not an issue.
+//[PJSC v1.03]      readBaro(); //Infrequent baro readings are not an issue.
     } //1Hz timer
 
     if ( currentStatus.testOutputs == 0 )         //[PJSC v1.01]For MUX output test mode
@@ -367,20 +369,60 @@ void loop()
         if(currentStatus.mapSelectSw) { dualFuelLoadVE = selectVE(currentStatus.veMapSelectionSw2Sec[0]); }
         else { dualFuelLoadVE = selectVE(currentStatus.veMapSelectionSw1Sec[0]); }
 
-        dualFuelLoadVE += (unsigned int)tempVEvalue[0];
         if ( configPage2.secondaryFuelUsage )         // Additive
         {
-          if( dualFuelLoadVE > 255 ) { dualFuelLoadVE = 255; }
+          dualFuelLoadVE += (unsigned int)tempVEvalue[0];
         }
         else                                          // Multiply VE
         {
-          dualFuelLoadVE = dualFuelLoadVE >> 1;
+          dualFuelLoadVE = dualFuelLoadVE * (unsigned int)tempVEvalue[0] / 100;
         }
+
+        if( dualFuelLoadVE > 255 ) { dualFuelLoadVE = 255; }
 
         tempVEvalue[0] = (byte)dualFuelLoadVE;
       }
 
       currentStatus.PW1 = PW(req_fuel_uS, tempVEvalue[0], currentStatus.MAP, currentStatus.corrections, inj_opentime_uS);
+      currentStatus.dualVE1 = tempVEvalue[0];
+
+      if ( configPage2.multiVEmapEnabled && configPage2.mapSeparationEnabled )
+      {
+        for (unsigned int numVe = 0; numVe < MULTI_VE_COUNT; numVe++)
+        {
+          if(currentStatus.mapSelectSw) { tempVEvalue[numVe] = selectVE(currentStatus.veMapSelectionSw2Pri[numVe]); }
+          else { tempVEvalue[numVe] = selectVE(currentStatus.veMapSelectionSw1Pri[numVe]); }
+
+          if( configPage2.dualFuelEnabled )               // Dual Fuel Load
+          {
+            if(currentStatus.mapSelectSw) { dualFuelLoadVE = selectVE(currentStatus.veMapSelectionSw2Sec[numVe]); }
+            else { dualFuelLoadVE = selectVE(currentStatus.veMapSelectionSw1Sec[numVe]); }
+
+            if ( configPage2.secondaryFuelUsage )         // Additive
+            {
+              dualFuelLoadVE += (unsigned int)tempVEvalue[numVe];
+            }
+            else                                          // Multiply VE
+            {
+              dualFuelLoadVE = dualFuelLoadVE * (unsigned int)tempVEvalue[numVe] / 100;
+            }
+
+            if( dualFuelLoadVE > 255 ) { dualFuelLoadVE = 255; }
+
+            tempVEvalue[numVe] = (byte)dualFuelLoadVE;
+          }
+        }
+
+        currentStatus.PW1 = PW(req_fuel_uS, tempVEvalue[0], currentStatus.MAP, currentStatus.corrections, inj_opentime_uS);
+        currentStatus.PW2 = PW(req_fuel_uS, tempVEvalue[1], currentStatus.MAP, currentStatus.corrections, inj_opentime_uS);
+        currentStatus.PW3 = PW(req_fuel_uS, tempVEvalue[2], currentStatus.MAP, currentStatus.corrections, inj_opentime_uS);
+        currentStatus.PW4 = PW(req_fuel_uS, tempVEvalue[3], currentStatus.MAP, currentStatus.corrections, inj_opentime_uS);
+
+        currentStatus.dualVE1 = tempVEvalue[0];
+        currentStatus.dualVE2 = tempVEvalue[1];
+        currentStatus.dualVE3 = tempVEvalue[2];
+        currentStatus.dualVE4 = tempVEvalue[3];
+      }
       //[PJSC] Multi VE Map support **********************************************************************************************
 
       //Manual adder for nitrous. These are not in correctionsFuel() because they are direct adders to the ms value, not % based
@@ -441,41 +483,88 @@ void loop()
       //Apply the pwLimit if staging is dsiabled and engine is not cranking
       if( (!BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) && (configPage10.stagingEnabled == false) ) { if (currentStatus.PW1 > pwLimit) { currentStatus.PW1 = pwLimit; } }
 
+      //[PJSC v1.03] Multi VE Map support **********************************************************************************************
+
       //Calculate staging pulsewidths if used
       //To run staged injection, the number of cylinders must be less than or equal to the injector channels (ie Assuming you're running paired injection, you need at least as many injector channels as you have cylinders, half for the primaries and half for the secondaries)
       if( (configPage10.stagingEnabled == true) && (configPage2.nCylinders <= INJ_CHANNELS) )
       {
         //Scale the 'full' pulsewidth by each of the injector capacities
-        currentStatus.PW1 -= inj_opentime_uS; //Subtract the opening time from PW1 as it needs to be multiplied out again by the pri/sec req_fuel values below. It is added on again after that calculation. 
-        uint32_t tempPW1 = (((unsigned long)currentStatus.PW1 * staged_req_fuel_mult_pri) / 100) + inj_opentime_uS; //Opening time has to be added back on here (See above where it is subtracted)
+//[PJSC v1.03]        currentStatus.PW1 -= inj_opentime_uS; //Subtract the opening time from PW1 as it needs to be multiplied out again by the pri/sec req_fuel values below. It is added on again after that calculation. 
+//[PJSC v1.03]        uint32_t tempPW1 = (((unsigned long)currentStatus.PW1 * staged_req_fuel_mult_pri) / 100) + inj_opentime_uS; //Opening time has to be added back on here (See above where it is subtracted)
+        uint32_t tempPW1 = (unsigned long)currentStatus.PW1;                                                //[PJSC v1.03]
 
         if(configPage10.stagingMode == STAGING_MODE_TABLE)
         {
-          uint32_t tempPW3 = (((unsigned long)currentStatus.PW1 * staged_req_fuel_mult_sec) / 100) + inj_opentime_uS; //This is ONLY needed in in table mode. Auto mode only calculates the difference. As above, opening time must be readded. 
+//[PJSC v1.03]          uint32_t tempPW3 = (((unsigned long)currentStatus.PW1 * staged_req_fuel_mult_sec) / 100) + inj_opentime_uS; //This is ONLY needed in in table mode. Auto mode only calculates the difference. As above, opening time must be readded. 
 
           byte stagingSplit = get3DTableValue(&stagingTable, currentStatus.MAP, currentStatus.RPM);
-          currentStatus.PW1 = ((100 - stagingSplit) * tempPW1) / 100;
+//[PJSC v1.03]          currentStatus.PW1 = ((100 - stagingSplit) * tempPW1) / 100;
+          tempPW1 -= inj_opentime_uS;                                                                       //[PJSC v1.03]
+          currentStatus.PW1 = ((100 - stagingSplit) * tempPW1 / 100) + inj_opentime_uS;                     //[PJSC v1.03]
 
-          if(stagingSplit > 0) { currentStatus.PW3 = (stagingSplit * tempPW3) / 100; }
+//[PJSC v1.03]          if(stagingSplit > 0) { currentStatus.PW3 = (stagingSplit * tempPW3) / 100; }
+          if(stagingSplit > 0) { currentStatus.PW3 = (stagingSplit * tempPW1 * staged_req_fuel_mult_sec / staged_req_fuel_mult_pri / 100) + inj_opentime_uS; }    //[PJSC v1.03]
           else { currentStatus.PW3 = 0; }
         }
         else if(configPage10.stagingMode == STAGING_MODE_AUTO)
         {
-          currentStatus.PW1 = tempPW1;
+//[PJSC v1.03]          currentStatus.PW1 = tempPW1;
           //If automatic mode, the primary injectors are used all the way up to their limit (Configured by the pulsewidth limit setting)
           //If they exceed their limit, the extra duty is passed to the secondaries
           if(tempPW1 > pwLimit)
           {
             uint32_t extraPW = tempPW1 - pwLimit;
             currentStatus.PW1 = pwLimit;
-            currentStatus.PW3 = ((extraPW * staged_req_fuel_mult_sec) / staged_req_fuel_mult_pri) + inj_opentime_uS; //Convert the 'left over' fuel amount from primary injector scaling to secondary
+            currentStatus.PW3 = (extraPW * staged_req_fuel_mult_sec / staged_req_fuel_mult_pri) + inj_opentime_uS; //Convert the 'left over' fuel amount from primary injector scaling to secondary
           }
-          else { currentStatus.PW3 = 0; } //If tempPW1 < pwLImit it means that the entire fuel load can be handled by the primaries. Simply set the secondaries to 0
+//[PJSC v1.03]          else { currentStatus.PW3 = 0; } //If tempPW1 < pwLImit it means that the entire fuel load can be handled by the primaries. Simply set the secondaries to 0
+          else                                                                                              //[PJSC v1.03]
+          {                                                                                                 // |
+            currentStatus.PW1 = tempPW1;                                                                    // |
+            currentStatus.PW3 = 0;                                                                          // V
+          }                                                                                                 //[PJSC v1.03]
         }
 
+        //[PJSC v1.03] VE map separation *******************************************************************************************
+        if ( configPage2.multiVEmapEnabled && configPage2.mapSeparationEnabled )
+        {
+          uint32_t tempPW2 = (unsigned long)currentStatus.PW2;
+
+          if(configPage10.stagingMode == STAGING_MODE_TABLE)
+          {
+            byte stagingSplit = get3DTableValue(&stagingTable, currentStatus.MAP, currentStatus.RPM);
+            tempPW2 -= inj_opentime_uS;
+            currentStatus.PW2 = ((100 - stagingSplit) * tempPW2 / 100) + inj_opentime_uS;
+
+            if(stagingSplit > 0) { currentStatus.PW4 = (stagingSplit * tempPW2 * staged_req_fuel_mult_sec / staged_req_fuel_mult_pri / 100) + inj_opentime_uS; }
+            else { currentStatus.PW4 = 0; }
+          }
+          else if(configPage10.stagingMode == STAGING_MODE_AUTO)
+          {
+            //If automatic mode, the primary injectors are used all the way up to their limit (Configured by the pulsewidth limit setting)
+            //If they exceed their limit, the extra duty is passed to the secondaries
+            if(tempPW2 > pwLimit)
+            {
+              uint32_t extraPW2 = tempPW2 - pwLimit;
+              currentStatus.PW2 = pwLimit;
+              currentStatus.PW4 = (extraPW2 * staged_req_fuel_mult_sec / staged_req_fuel_mult_pri) + inj_opentime_uS; //Convert the 'left over' fuel amount from primary injector scaling to secondary
+            }
+            else
+            {
+              currentStatus.PW2 = tempPW2;
+              currentStatus.PW4 = 0; 
+            }
+          }
+        }
+        else
+        {
+        //[PJSC v1.03] VE map separation *******************************************************************************************
+
         //Set the 2nd channel of each stage with the same pulseWidth
-        currentStatus.PW2 = currentStatus.PW1;
-        currentStatus.PW4 = currentStatus.PW3;
+          currentStatus.PW2 = currentStatus.PW1;
+          currentStatus.PW4 = currentStatus.PW3;
+        }                                                                   //[PJSC v1.03] VE map separation
       }
       else 
       { 
@@ -500,15 +589,16 @@ void loop()
               if(currentStatus.mapSelectSw) { dualFuelLoadVE = selectVE(currentStatus.veMapSelectionSw2Sec[numVe]); }
               else { dualFuelLoadVE = selectVE(currentStatus.veMapSelectionSw1Sec[numVe]); }
 
-              dualFuelLoadVE += (unsigned int)tempVEvalue[numVe];
               if ( configPage2.secondaryFuelUsage )         // Additive
               {
-                if( dualFuelLoadVE > 255 ) { dualFuelLoadVE = 255; }
+                dualFuelLoadVE += (unsigned int)tempVEvalue[numVe];
               }
               else                                          // Multiply VE
               {
-                dualFuelLoadVE = dualFuelLoadVE >> 1;
+                dualFuelLoadVE = dualFuelLoadVE * (unsigned int)tempVEvalue[numVe] / 100;
               }
+
+              if( dualFuelLoadVE > 255 ) { dualFuelLoadVE = 255; }
 
               tempVEvalue[numVe] = (byte)dualFuelLoadVE;
             }
@@ -518,8 +608,22 @@ void loop()
           currentStatus.PW2 = PW(req_fuel_uS, tempVEvalue[1], currentStatus.MAP, currentStatus.corrections, inj_opentime_uS);
           currentStatus.PW3 = PW(req_fuel_uS, tempVEvalue[2], currentStatus.MAP, currentStatus.corrections, inj_opentime_uS);
           currentStatus.PW4 = PW(req_fuel_uS, tempVEvalue[3], currentStatus.MAP, currentStatus.corrections, inj_opentime_uS);
+
+          currentStatus.dualVE1 = tempVEvalue[0];
+          currentStatus.dualVE2 = tempVEvalue[1];
+          currentStatus.dualVE3 = tempVEvalue[2];
+          currentStatus.dualVE4 = tempVEvalue[3];
         }
         //[PJSC] Multi VE Map support **********************************************************************************************
+      }
+
+      //[PJSC v1.03] Multi VE Map support **********************************************************************************************
+      if( !BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
+      {
+        if (currentStatus.PW1 > pwLimit) { currentStatus.PW1 = pwLimit; }
+        if (currentStatus.PW2 > pwLimit) { currentStatus.PW2 = pwLimit; }
+        if (currentStatus.PW3 > pwLimit) { currentStatus.PW3 = pwLimit; }
+        if (currentStatus.PW4 > pwLimit) { currentStatus.PW4 = pwLimit; }
       }
 
       //***********************************************************************************************
@@ -584,7 +688,8 @@ void loop()
         case 4:
           injector2StartAngle = calculateInjector2StartAngle(PWdivTimerPerDegree);
 
-          if(configPage2.injLayout == INJ_SEQUENTIAL)
+//[PJSC v1.03]          if(configPage2.injLayout == INJ_SEQUENTIAL)
+          if( (configPage2.injLayout == INJ_SEQUENTIAL) || (configPage2.injLayout == INJ_SEMISEQUENTIAL) )        //[PJSC v1.03]
           {
             injector3StartAngle = calculateInjector3StartAngle(PWdivTimerPerDegree);
             injector4StartAngle = calculateInjector4StartAngle(PWdivTimerPerDegree);
@@ -819,24 +924,27 @@ void loop()
       }
 
 #if INJ_CHANNELS >= 1
-      if( configPage2.squirtDeviceType == 1 )                      //[PJSC]
-      {                                                            //[PJSC]
-        pjscControl();                                             //[PJSC]
-      }                                                            //[PJSC]
-      else{                                                        //[PJSC]
+//[PJSC v1.03]      if( configPage2.squirtDeviceType == 1 )                      //[PJSC]
+//[PJSC v1.03]      {                                                            //[PJSC]
+//[PJSC v1.03]        pjscControl();                                             //[PJSC]
+//[PJSC v1.03]      }                                                            //[PJSC]
+//[PJSC v1.03]      else{                                                        //[PJSC]
         if (fuelOn && !BIT_CHECK(currentStatus.status1, BIT_STATUS1_BOOSTCUT))
         {
-          if(currentStatus.PW1 >= inj_opentime_uS)
-          {
-            if ( (injector1StartAngle <= crankAngle) && (fuelSchedule1.Status == RUNNING) ) { injector1StartAngle += CRANK_ANGLE_MAX_INJ; }
-            if (injector1StartAngle > crankAngle)
+          if( configPage2.squirtDeviceTypeCh1 == 1 ) { pjscControl(); }          //[PJSC v1.03]
+          else {                                                                 //[PJSC v1.03]
+            if(currentStatus.PW1 >= inj_opentime_uS)
             {
-              setFuelSchedule1(
-                        ((injector1StartAngle - crankAngle) * (unsigned long)timePerDegree),
-                        (unsigned long)currentStatus.PW1
-                        );
+              if ( (injector1StartAngle <= crankAngle) && (fuelSchedule1.Status == RUNNING) ) { injector1StartAngle += CRANK_ANGLE_MAX_INJ; }
+              if (injector1StartAngle > crankAngle)
+              {
+                setFuelSchedule1(
+                          ((injector1StartAngle - crankAngle) * (unsigned long)timePerDegree),
+                          (unsigned long)currentStatus.PW1
+                          );
+              }
             }
-          }
+          }                                                                      //[PJSC v1.03]
 #endif
 
         /*-----------------------------------------------------------------------------------------
@@ -851,57 +959,66 @@ void loop()
         |------------------------------------------------------------------------------------------
         */
 #if INJ_CHANNELS >= 2
-          if( (channel2InjEnabled) && (currentStatus.PW2 >= inj_opentime_uS) )
-          {
-            tempCrankAngle = crankAngle - channel2InjDegrees;
-            if( tempCrankAngle < 0) { tempCrankAngle += CRANK_ANGLE_MAX_INJ; }
-            tempStartAngle = injector2StartAngle - channel2InjDegrees;
-            if ( tempStartAngle < 0) { tempStartAngle += CRANK_ANGLE_MAX_INJ; }
-            if ( (tempStartAngle <= tempCrankAngle) && (fuelSchedule2.Status == RUNNING) ) { tempStartAngle += CRANK_ANGLE_MAX_INJ; }
-            if ( tempStartAngle > tempCrankAngle )
+          if( configPage2.squirtDeviceTypeCh2 == 1 ) { pjscControl(); }          //[PJSC v1.03]
+          else {                                                                 //[PJSC v1.03]
+            if( (channel2InjEnabled) && (currentStatus.PW2 >= inj_opentime_uS) )
             {
-              setFuelSchedule2(
-                        ((tempStartAngle - tempCrankAngle) * (unsigned long)timePerDegree),
-                        (unsigned long)currentStatus.PW2
-                        );
+              tempCrankAngle = crankAngle - channel2InjDegrees;
+              if( tempCrankAngle < 0) { tempCrankAngle += CRANK_ANGLE_MAX_INJ; }
+              tempStartAngle = injector2StartAngle - channel2InjDegrees;
+              if ( tempStartAngle < 0) { tempStartAngle += CRANK_ANGLE_MAX_INJ; }
+              if ( (tempStartAngle <= tempCrankAngle) && (fuelSchedule2.Status == RUNNING) ) { tempStartAngle += CRANK_ANGLE_MAX_INJ; }
+              if ( tempStartAngle > tempCrankAngle )
+              {
+                setFuelSchedule2(
+                          ((tempStartAngle - tempCrankAngle) * (unsigned long)timePerDegree),
+                          (unsigned long)currentStatus.PW2
+                          );
+              }
             }
-          }
+          }                                                                      //[PJSC v1.03]
 #endif
 
 #if INJ_CHANNELS >= 3
-          if( (channel3InjEnabled) && (currentStatus.PW3 >= inj_opentime_uS) )
-          {
-            tempCrankAngle = crankAngle - channel3InjDegrees;
-            if( tempCrankAngle < 0) { tempCrankAngle += CRANK_ANGLE_MAX_INJ; }
-            tempStartAngle = injector3StartAngle - channel3InjDegrees;
-            if ( tempStartAngle < 0) { tempStartAngle += CRANK_ANGLE_MAX_INJ; }
-            if ( (tempStartAngle <= tempCrankAngle) && (fuelSchedule3.Status == RUNNING) ) { tempStartAngle += CRANK_ANGLE_MAX_INJ; }
-            if ( tempStartAngle > tempCrankAngle )
+          if( configPage2.squirtDeviceTypeCh3 == 1 ) { pjscControl(); }          //[PJSC v1.03]
+          else {                                                                 //[PJSC v1.03]
+            if( (channel3InjEnabled) && (currentStatus.PW3 >= inj_opentime_uS) )
             {
-              setFuelSchedule3(
-                        ((tempStartAngle - tempCrankAngle) * (unsigned long)timePerDegree),
-                        (unsigned long)currentStatus.PW3
-                        );
+              tempCrankAngle = crankAngle - channel3InjDegrees;
+              if( tempCrankAngle < 0) { tempCrankAngle += CRANK_ANGLE_MAX_INJ; }
+              tempStartAngle = injector3StartAngle - channel3InjDegrees;
+              if ( tempStartAngle < 0) { tempStartAngle += CRANK_ANGLE_MAX_INJ; }
+              if ( (tempStartAngle <= tempCrankAngle) && (fuelSchedule3.Status == RUNNING) ) { tempStartAngle += CRANK_ANGLE_MAX_INJ; }
+              if ( tempStartAngle > tempCrankAngle )
+              {
+                setFuelSchedule3(
+                          ((tempStartAngle - tempCrankAngle) * (unsigned long)timePerDegree),
+                          (unsigned long)currentStatus.PW3
+                          );
+              }
             }
-          }
+          }                                                                      //[PJSC v1.03]
 #endif
 
 #if INJ_CHANNELS >= 4
-          if( (channel4InjEnabled) && (currentStatus.PW4 >= inj_opentime_uS) )
-          {
-            tempCrankAngle = crankAngle - channel4InjDegrees;
-            if( tempCrankAngle < 0) { tempCrankAngle += CRANK_ANGLE_MAX_INJ; }
-            tempStartAngle = injector4StartAngle - channel4InjDegrees;
-            if ( tempStartAngle < 0) { tempStartAngle += CRANK_ANGLE_MAX_INJ; }
-            if ( (tempStartAngle <= tempCrankAngle) && (fuelSchedule4.Status == RUNNING) ) { tempStartAngle += CRANK_ANGLE_MAX_INJ; }
-            if ( tempStartAngle > tempCrankAngle )
+          if( configPage2.squirtDeviceTypeCh4 == 1 ) { pjscControl(); }          //[PJSC v1.03]
+          else {                                                                 //[PJSC v1.03]
+            if( (channel4InjEnabled) && (currentStatus.PW4 >= inj_opentime_uS) )
             {
-              setFuelSchedule4(
-                        ((tempStartAngle - tempCrankAngle) * (unsigned long)timePerDegree),
-                        (unsigned long)currentStatus.PW4
-                        );
+              tempCrankAngle = crankAngle - channel4InjDegrees;
+              if( tempCrankAngle < 0) { tempCrankAngle += CRANK_ANGLE_MAX_INJ; }
+              tempStartAngle = injector4StartAngle - channel4InjDegrees;
+              if ( tempStartAngle < 0) { tempStartAngle += CRANK_ANGLE_MAX_INJ; }
+              if ( (tempStartAngle <= tempCrankAngle) && (fuelSchedule4.Status == RUNNING) ) { tempStartAngle += CRANK_ANGLE_MAX_INJ; }
+              if ( tempStartAngle > tempCrankAngle )
+              {
+                setFuelSchedule4(
+                          ((tempStartAngle - tempCrankAngle) * (unsigned long)timePerDegree),
+                          (unsigned long)currentStatus.PW4
+                          );
+              }
             }
-          }
+          }                                                                      //[PJSC v1.03]
 #endif
 
 #if INJ_CHANNELS >= 5
@@ -983,7 +1100,7 @@ void loop()
           }
 #endif
         }
-      }  //[PJSC]
+//[PJSC v1.03]      }  //[PJSC]
       //***********************************************************************************************
       //| BEGIN IGNITION SCHEDULES
       //Same as above, except for ignition
@@ -1215,7 +1332,8 @@ void loop()
   GammaE: Sum of Enrichment factors (Cold start, acceleration). This is a multiplication factor (Eg to add 10%, this should be 110)
   injDT: Injector dead time. The time the injector take to open minus the time it takes to close (Both in uS)
 */
-uint16_t PW(int REQ_FUEL, byte VE, long MAP, int corrections, int injOpen)
+//[PJSC v1.03]uint16_t PW(int REQ_FUEL, byte VE, long MAP, int corrections, int injOpen)
+uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen)     //[PJSC v1.03]
 {
   //Standard float version of the calculation
   //return (REQ_FUEL * (float)(VE/100.0) * (float)(MAP/100.0) * (float)(TPS/100.0) * (float)(corrections/100.0) + injOpen);
@@ -1225,6 +1343,12 @@ uint16_t PW(int REQ_FUEL, byte VE, long MAP, int corrections, int injOpen)
   uint16_t iAFR = 147;
 
   //100% float free version, does sacrifice a little bit of accuracy, but not much.
+
+  //[PJSC v1.03]If corrections are huge, use less bitshift to avoid overflow. Sacrifices a bit more accuracy (basically only during very cold temp cranking)
+  byte bitShift = 7;                                       //[PJSC v1.03]
+  if (corrections > 511 ) { bitShift = 6; }                //[PJSC v1.03]
+  if (corrections > 1023) { bitShift = 5; }                //[PJSC v1.03]
+
   iVE = ((unsigned int)VE << 7) / 100;
   if ( configPage2.multiplyMAP == true ) {
     iMAP = ((unsigned int)MAP << 7) / currentStatus.baro;  //Include multiply MAP (vs baro) if enabled
@@ -1232,7 +1356,8 @@ uint16_t PW(int REQ_FUEL, byte VE, long MAP, int corrections, int injOpen)
   if ( (configPage2.includeAFR == true) && (configPage6.egoType == 2)) {
     iAFR = ((unsigned int)currentStatus.O2 << 7) / currentStatus.afrTarget;  //Include AFR (vs target) if enabled
   }
-  iCorrections = (corrections << 7) / 100;
+  //[PJSC v1.03]iCorrections = (corrections << 7) / 100;
+  iCorrections = (corrections << bitShift) / 100;          //[PJSC v1.03]
 
 
   unsigned long intermediate = ((long)REQ_FUEL * (long)iVE) >> 7; //Need to use an intermediate value to avoid overflowing the long
@@ -1242,7 +1367,8 @@ uint16_t PW(int REQ_FUEL, byte VE, long MAP, int corrections, int injOpen)
   if ( (configPage2.includeAFR == true) && (configPage6.egoType == 2) ) {
     intermediate = (intermediate * (unsigned long)iAFR) >> 7;  //EGO type must be set to wideband for this to be used
   }
-  intermediate = (intermediate * (unsigned long)iCorrections) >> 7;
+  //[PJSC v1.03]intermediate = (intermediate * (unsigned long)iCorrections) >> 7;
+  intermediate = (intermediate * (unsigned long)iCorrections) >> bitShift;          //[PJSC v1.03]
   if (intermediate != 0)
   {
     //If intermeditate is not 0, we need to add the opening time (0 typically indicates that one of the full fuel cuts is active)

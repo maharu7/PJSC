@@ -7,9 +7,11 @@ All functions in the gamma file return
 
 void initialiseCorrections();
 
-static inline byte correctionsFuel() __attribute__((always_inline));
+//[PJSC v1.03]static inline byte correctionsFuel() __attribute__((always_inline));
+static inline uint16_t correctionsFuel() __attribute__((always_inline));    //[PJSC v1.03]
 static inline byte correctionWUE() __attribute__((always_inline)); //Warmup enrichment
-static inline byte correctionCranking() __attribute__((always_inline)); //Cranking enrichment
+//[PJSC v1.03]static inline byte correctionCranking() __attribute__((always_inline)); //Cranking enrichment
+static inline uint16_t correctionCranking() __attribute__((always_inline)); //[PJSC v1.03]
 static inline byte correctionASE() __attribute__((always_inline)); //After Start Enrichment
 static inline int16_t correctionAccel() __attribute__((always_inline)); //Acceleration Enrichment
 static inline byte correctionFloodClear() __attribute__((always_inline)); //Check for flood clear on cranking
@@ -19,6 +21,8 @@ static inline byte correctionBatVoltage() __attribute__((always_inline)); //Batt
 static inline byte correctionIATDensity() __attribute__((always_inline)); //Inlet temp density correction
 static inline byte correctionLaunch() __attribute__((always_inline)); //Launch control correction
 static inline bool correctionDFCO() __attribute__((always_inline)); //Decelleration fuel cutoff
+static inline byte correctionBARO() __attribute__((always_inline)); //[PJSC v1.03]Barometric pressure correction
+static inline int16_t setDecelerationCorrection() __attribute__((always_inline)); //[PJSC v1.03]
 
 int8_t correctionsIgn(int8_t advance);
 static inline int8_t correctionFixedTiming(int8_t);

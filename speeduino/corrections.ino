@@ -36,24 +36,33 @@ void initialiseCorrections()
 correctionsTotal() calls all the other corrections functions and combines their results.
 This is the only function that should be called from anywhere outside the file
 */
-static inline byte correctionsFuel()
-{
-  unsigned long sumCorrections = 100;
-  byte activeCorrections = 0;
-  byte result; //temporary variable to store the result of each corrections function
+//[PJSC v1.03]static inline byte correctionsFuel()
+//[PJSC v1.03]{
+//[PJSC v1.03]  unsigned long sumCorrections = 100;
+//[PJSC v1.03]  byte activeCorrections = 0;
+//[PJSC v1.03]  byte result; //temporary variable to store the result of each corrections function
+static inline uint16_t correctionsFuel()              //[PJSC v1.03]
+{                                                     //[PJSC v1.03]
+  uint32_t sumCorrections = 100;                      //[PJSC v1.03]
+  byte activeCorrections = 0;                         //[PJSC v1.03]
+  uint16_t result;                                    //[PJSC v1.03]
 
   //The values returned by each of the correction functions are multipled together and then divided back to give a single 0-255 value.
   currentStatus.wueCorrection = correctionWUE();
+  if (configPage2.swWUE == 0) { currentStatus.wueCorrection = 100; }                                                                          //[PJSC v1.03]
   if (currentStatus.wueCorrection != 100) { sumCorrections = (sumCorrections * currentStatus.wueCorrection); activeCorrections++; }
 
   result = correctionASE();
+  if (configPage2.swASE == 0) { result = 100; }                                                                                               //[PJSC v1.03]
   if (result != 100) { sumCorrections = (sumCorrections * result); activeCorrections++; }
 
   result = correctionCranking();
+  if (configPage2.swCrankingEnrichment == 0) { result = 100; }                                                                                //[PJSC v1.03]
   if (result != 100) { sumCorrections = (sumCorrections * result); activeCorrections++; }
   if (activeCorrections == 3) { sumCorrections = sumCorrections / powint(100,activeCorrections); activeCorrections = 0; } // Need to check this to ensure that sumCorrections doesn't overflow. Can occur when the number of corrections is greater than 3 (Which is 100^4) as 100^5 can overflow
 
   currentStatus.TAEamount = correctionAccel();
+  if (configPage2.swTAE == 0) { currentStatus.TAEamount = 100; }                                                                              //[PJSC v1.03]
   if (currentStatus.TAEamount != 100) { sumCorrections = (sumCorrections * currentStatus.TAEamount); activeCorrections++; }
   if (activeCorrections == 3) { sumCorrections = sumCorrections / powint(100,activeCorrections); activeCorrections = 0; }
 
@@ -66,10 +75,17 @@ static inline byte correctionsFuel()
   if (activeCorrections == 3) { sumCorrections = sumCorrections / powint(100,activeCorrections); activeCorrections = 0; }
 
   currentStatus.batCorrection = correctionBatVoltage();
-  if (currentStatus.batCorrection != 100) { sumCorrections = (sumCorrections * currentStatus.batCorrection); activeCorrections++; }
+  if (configPage2.swBatVCorrection == 0) { currentStatus.batCorrection = 100; }                                                               //[PJSC v1.03]
+//[PJSC v1.03]  if (currentStatus.batCorrection != 100) { sumCorrections = (sumCorrections * currentStatus.batCorrection); activeCorrections++; }
+  if (currentStatus.batCorrection != 100)                                                                                                     //[PJSC v1.03]
+  {                                                                                                                                           // |
+    sumCorrections = (sumCorrections * currentStatus.batCorrection); activeCorrections++;                                                     // |
+    inj_opentime_uS = configPage2.injOpen * currentStatus.batCorrection / 10;                                                                 // V
+  }                                                                                                                                           //[PJSC v1.03]
   if (activeCorrections == 3) { sumCorrections = sumCorrections / powint(100,activeCorrections); activeCorrections = 0; }
 
   currentStatus.iatCorrection = correctionIATDensity();
+  if (configPage2.swIATcorrection == 0) { currentStatus.iatCorrection = 100; }                                                                //[PJSC v1.03]
   if (currentStatus.iatCorrection != 100) { sumCorrections = (sumCorrections * currentStatus.iatCorrection); activeCorrections++; }
   if (activeCorrections == 3) { sumCorrections = sumCorrections / powint(100,activeCorrections); activeCorrections = 0; }
 
@@ -77,16 +93,24 @@ static inline byte correctionsFuel()
   if (currentStatus.flexCorrection != 100) { sumCorrections = (sumCorrections * currentStatus.flexCorrection); activeCorrections++; }
   if (activeCorrections == 3) { sumCorrections = sumCorrections / powint(100,activeCorrections); activeCorrections = 0; }
 
+  currentStatus.baroCorrection = correctionBARO();                                                                                            //[PJSC v1.03]
+  if (configPage2.baroCorr == 0) { currentStatus.baroCorrection = 100; }                                                                      // |
+  if (currentStatus.baroCorrection != 100) { sumCorrections = (sumCorrections * currentStatus.baroCorrection); activeCorrections++; }         // V
+  if (activeCorrections == 3) { sumCorrections = sumCorrections / powint(100,activeCorrections); activeCorrections = 0; }                     //[PJSC v1.03]
+
   currentStatus.launchCorrection = correctionLaunch();
   if (currentStatus.launchCorrection != 100) { sumCorrections = (sumCorrections * currentStatus.launchCorrection); activeCorrections++; }
 
   bitWrite(currentStatus.status1, BIT_STATUS1_DFCO, correctionDFCO());
   if ( bitRead(currentStatus.status1, BIT_STATUS1_DFCO) == 1 ) { sumCorrections = 0; }
 
+
   sumCorrections = sumCorrections / powint(100,activeCorrections);
 
-  if(sumCorrections > 255) { sumCorrections = 255; } //This is the maximum allowable increase
-  return (byte)sumCorrections;
+//[PJSC v1.03]  if(sumCorrections > 255) { sumCorrections = 255; } //This is the maximum allowable increase
+//[PJSC v1.03]  return (byte)sumCorrections;
+  if(sumCorrections > 1500) { sumCorrections = 1500; }             //[PJSC v1.03]
+  return (uint16_t)sumCorrections;                                 //[PJSC v1.03]
 }
 
 /*
@@ -116,16 +140,27 @@ static inline byte correctionWUE()
 Cranking Enrichment
 Additional fuel % to be added when the engine is cranking
 */
-static inline byte correctionCranking()
-{
-  byte crankingValue = 100;
-  //if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) ) { crankingValue = 100 + configPage2.crankingPct; }
-  if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
-  {
-    crankingValue = table2D_getValue(&crankingEnrichTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
-  }
-  return crankingValue;
-}
+//[PJSC v1.03]static inline byte correctionCranking()
+//[PJSC v1.03]{
+//[PJSC v1.03]  byte crankingValue = 100;
+//[PJSC v1.03]  //if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) ) { crankingValue = 100 + configPage2.crankingPct; }
+//[PJSC v1.03]  if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
+//[PJSC v1.03]  {
+//[PJSC v1.03]    crankingValue = table2D_getValue(&crankingEnrichTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
+//[PJSC v1.03]  }
+//[PJSC v1.03]  return crankingValue;
+//[PJSC v1.03]}
+static inline uint16_t correctionCranking()                                                                              //[PJSC v1.03]
+{                                                                                                                        // |
+  uint16_t crankingValue = 100;                                                                                          // |
+  //Check if we are actually cranking                                                                                    // |
+  if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )                                                               // |
+  {                                                                                                                      // |
+    crankingValue = table2D_getValue(&crankingEnrichTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);      // |
+    crankingValue = (uint16_t) crankingValue * 5; //multiplied by 5 to get range from 0% to 1275%                        // |
+  }                                                                                                                      // |
+  return crankingValue;                                                                                                  // V
+}                                                                                                                        //[PJSC v1.03]
 
 /*
 After Start Enrichment
@@ -161,13 +196,16 @@ static inline int16_t correctionAccel()
 {
   int16_t accelValue = 100;
   //First, check whether the accel. enrichment is already running
-  if( BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC) )
+  //[PJSC v1.03]if( BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC) )
+
+  if( BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC) || BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC) )      //[PJSC v1.03]
   {
     //If it is currently running, check whether it should still be running or whether it's reached it's end time
     if( micros_safe() >= currentStatus.TAEEndTime )
     {
       //Time to turn enrichment off
       BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ACC);
+      BIT_CLEAR(currentStatus.engine, BIT_ENGINE_DCC);                                                          //[PJSC v1.03]
       currentStatus.TAEamount = 0;
       accelValue = 100;
       currentStatus.tpsDOT = 0;
@@ -178,48 +216,78 @@ static inline int16_t correctionAccel()
       accelValue = currentStatus.TAEamount;
     }
   }
+
+  //[PJSC v1.03]else
+  //[PJSC v1.03]{
+  //[PJSC v1.03]int8_t TPS_change = (currentStatus.TPS - currentStatus.TPSlast);
+  //Check for deceleration (Deceleration adjustment not yet supported)
+  //Also check for only very small movement (Movement less than or equal to 2% is ignored). This not only means we can skip the lookup, but helps reduce false triggering around 0-2% throttle openings
+  //[PJSC v1.03]  if (TPS_change <= 2)
+
+  int8_t TPS_change = (currentStatus.TPS - currentStatus.TPSlast);                                                                                                             //[PJSC v1.03]
+  if ( (TPS_change <= 2) && (TPS_change >= -2) && (BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC) == false) && (BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC) == false) )   //[PJSC v1.03]
+  {
+    accelValue = 100;
+    currentStatus.tpsDOT = 0;
+  }
   else
   {
-    int8_t TPS_change = (currentStatus.TPS - currentStatus.TPSlast);
-    //Check for deceleration (Deceleration adjustment not yet supported)
-    //Also check for only very small movement (Movement less than or equal to 2% is ignored). This not only means we can skip the lookup, but helps reduce false triggering around 0-2% throttle openings
-    if (TPS_change <= 2)
-    {
-      accelValue = 100;
-      currentStatus.tpsDOT = 0;
-    }
-    else
-    {
-      //If TAE isn't currently turned on, need to check whether it needs to be turned on
-      int rateOfChange = ldiv(1000000, (currentStatus.TPS_time - currentStatus.TPSlast_time)).quot * TPS_change; //This is the % per second that the TPS has moved
-      currentStatus.tpsDOT = rateOfChange / 10; //The TAE bins are divided by 10 in order to allow them to be stored in a byte. Faster as this than divu10
+    //If TAE isn't currently turned on, need to check whether it needs to be turned on
+    int rateOfChange = ldiv(1000000, (currentStatus.TPS_time - currentStatus.TPSlast_time)).quot * TPS_change; //This is the % per second that the TPS has moved
+    currentStatus.tpsDOT = rateOfChange / 10; //The TAE bins are divided by 10 in order to allow them to be stored in a byte. Faster as this than divu10
 
-      if (rateOfChange > configPage2.tpsThresh)
+    if (rateOfChange > configPage2.tpsThresh)
+    {
+      if( BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC) == false ) { currentStatus.TAEEndTime = micros_safe() + ((unsigned long)configPage2.taeTime * 10000); }  //Set the time in the future where the enrichment will be turned off. taeTime is stored as mS / 10, so multiply it by 100 to get it in uS
+
+      BIT_SET(currentStatus.engine, BIT_ENGINE_ACC); //Mark accleration enrichment as active.
+//[PJSC v1.03]        currentStatus.TAEEndTime = micros_safe() + ((unsigned long)configPage2.taeTime * 10000); //Set the time in the future where the enrichment will be turned off. taeTime is stored as mS / 10, so multiply it by 100 to get it in uS
+      accelValue = table2D_getValue(&taeTable, currentStatus.tpsDOT);
+
+      //Apply the taper to the above
+      //The RPM settings are stored divided by 100:
+      uint16_t trueTaperMin = configPage2.taeTaperMin * 100;
+      uint16_t trueTaperMax = configPage2.taeTaperMax * 100;
+      if (currentStatus.RPM > trueTaperMin)
       {
-        BIT_SET(currentStatus.engine, BIT_ENGINE_ACC); //Mark accleration enrichment as active.
-        currentStatus.TAEEndTime = micros_safe() + ((unsigned long)configPage2.taeTime * 10000); //Set the time in the future where the enrichment will be turned off. taeTime is stored as mS / 10, so multiply it by 100 to get it in uS
-        accelValue = table2D_getValue(&taeTable, currentStatus.tpsDOT);
-
-        //Apply the taper to the above
-        //The RPM settings are stored divided by 100:
-        uint16_t trueTaperMin = configPage2.taeTaperMin * 100;
-        uint16_t trueTaperMax = configPage2.taeTaperMax * 100;
-        if (currentStatus.RPM > trueTaperMin)
+        if(currentStatus.RPM > trueTaperMax) { accelValue = 0; } //RPM is beyond taper max limit, so accel enrich is turned off
+        else 
         {
-          if(currentStatus.RPM > trueTaperMax) { accelValue = 0; } //RPM is beyond taper max limit, so accel enrich is turned off
-          else 
-          {
-            int16_t taperRange = trueTaperMax - trueTaperMin;
-            int16_t taperPercent = ((currentStatus.RPM - trueTaperMin) * 100) / taperRange; //The percentage of the way through the RPM taper range
-            accelValue = percentage((100-taperPercent), accelValue); //Calculate the above percentage of the calculated accel amount. 
-          }
+          int16_t taperRange = trueTaperMax - trueTaperMin;
+          int16_t taperPercent = ((currentStatus.RPM - trueTaperMin) * 100) / taperRange; //The percentage of the way through the RPM taper range
+          accelValue = percentage((100-taperPercent), accelValue); //Calculate the above percentage of the calculated accel amount. 
         }
-        accelValue = 100 + accelValue; //Add the 100 normalisation to the calculated amount
+      }
+      accelValue = 100 + accelValue; //Add the 100 normalisation to the calculated amount
+    }
+    //**************************** [PJSC v1.03] For TPSdotDFCO ****************************
+    else if  (rateOfChange <= configPage4.dfcoTPSdotThresh)
+    {
+      if( BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC) == false )
+      {
+        if ( (configPage2.dfcoTPSdotEnabled == 1) && (currentStatus.RPM > ( configPage4.dfcoTPSdotRPM * 50)) && (currentStatus.TPS < configPage4.dfcoTPSdotTPSThresh) ) { accelValue = setDecelerationCorrection(); }
+        else { accelValue = 100; }
       }
     }
+    //**************************** [PJSC v1.03] For TPSdotDFCO ****************************
   }
 
   return accelValue;
+}
+
+/*
+[PJSC v1.03] Set deceleration for SMART shift
+*/
+static inline int16_t setDecelerationCorrection()
+{
+  int16_t decelValue = 100;
+
+  if( BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC) == false ) { currentStatus.TAEEndTime = micros_safe() + ((unsigned long)configPage4.dfcoTPSdotDuration * 10000); }  //Set the time in the future where the fuel cut off will be turned off. dfcoTPSdotDuration is stored as mS / 10, so multiply it by 100 to get it in uS
+  BIT_SET(currentStatus.engine, BIT_ENGINE_DCC); //Mark deaccleration fuel cut off as active.
+  decelValue = configPage4.dfcoTPSdotMulti;
+  currentStatus.TAEamount = decelValue;
+
+  return decelValue;
 }
 
 /*
@@ -288,8 +356,10 @@ static inline bool correctionDFCO()
   bool DFCOValue = false;
   if ( configPage2.dfcoEnabled == 1 )
   {
-    if ( bitRead(currentStatus.status1, BIT_STATUS1_DFCO) == 1 ) { DFCOValue = ( currentStatus.RPM > ( configPage4.dfcoRPM * 10) ) && ( currentStatus.TPS < configPage4.dfcoTPSThresh ); }
-    else { DFCOValue = ( currentStatus.RPM > (unsigned int)( (configPage4.dfcoRPM * 10) + configPage4.dfcoHyster) ) && ( currentStatus.TPS < configPage4.dfcoTPSThresh ); }
+//[PJSC v1.03]    if ( bitRead(currentStatus.status1, BIT_STATUS1_DFCO) == 1 ) { DFCOValue = ( currentStatus.RPM > ( configPage4.dfcoRPM * 10) ) && ( currentStatus.TPS < configPage4.dfcoTPSThresh ); }
+//[PJSC v1.03]    else { DFCOValue = ( currentStatus.RPM > (unsigned int)( (configPage4.dfcoRPM * 10) + configPage4.dfcoHyster) ) && ( currentStatus.TPS < configPage4.dfcoTPSThresh ); }
+    if ( bitRead(currentStatus.status1, BIT_STATUS1_DFCO) == 1 ) { DFCOValue = ( currentStatus.RPM > ( configPage4.dfcoRPM * 50) ) && ( currentStatus.TPS < configPage4.dfcoTPSThresh ); }                 //[PJSC v1.03]
+    else { DFCOValue = ( currentStatus.RPM > (unsigned int)( (configPage4.dfcoRPM * 50) + configPage4.dfcoHyster) ) && ( currentStatus.TPS < configPage4.dfcoTPSThresh ); }                                //[PJSC v1.03]
   }
   return DFCOValue;
 }
@@ -307,6 +377,18 @@ static inline byte correctionFlex()
     flexValue = table2D_getValue(&flexFuelTable, currentStatus.ethanolPct);
   }
   return flexValue;
+}
+
+/*[PJSC v1.03]
+Simple pressure based corrections lookup based on the barometric pressure.
+*/
+static inline byte correctionBARO()
+{
+  byte BaroValue = 100;
+  if ( (currentStatus.baro) > (barometricCorrectionTable.axisX[8])) { BaroValue = barometricCorrectionTable.values[barometricCorrectionTable.xSize-1]; }
+  else { BaroValue = table2D_getValue(&barometricCorrectionTable, currentStatus.baro); }
+
+  return BaroValue;
 }
 
 /*

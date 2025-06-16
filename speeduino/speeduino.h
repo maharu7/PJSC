@@ -1,7 +1,8 @@
 #ifndef SPEEDUINO_H
 #define SPEEDUINO_H
 
-uint16_t PW(int REQ_FUEL, byte VE, long MAP, int corrections, int injOpen);
+//[PJSC v1.03]uint16_t PW(int REQ_FUEL, byte VE, long MAP, int corrections, int injOpen);
+uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen);     //[PJSC v1.03]
 byte getVE();
 byte getVE2();        //[PJSC v1.01]Multi VE Map support
 byte getVE3();        //[PJSC v1.01]Multi VE Map support

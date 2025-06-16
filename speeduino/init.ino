@@ -113,6 +113,11 @@ void initialiseAll()
     knockWindowDurationTable.values = configPage10.knock_window_dur;
     knockWindowDurationTable.axisX = configPage10.knock_window_rpms;
 
+    barometricCorrectionTable.valueSize = SIZE_BYTE;                                 //[PJSC v1.03]
+    barometricCorrectionTable.xSize = 9;                                             // |
+    barometricCorrectionTable.values = configPage4.baroDenRates;                     // V
+    barometricCorrectionTable.axisX = configPage4.baroDenBins;                       //[PJSC v1.03]
+
     currentStatus.veMapSelectionSw1Pri[0] = configPage2.veMapSelectionInj1Pri;       //[PJSC v1.01] For x4 Fuel table support
     currentStatus.veMapSelectionSw1Pri[1] = configPage2.veMapSelectionInj2Pri;       // |
     currentStatus.veMapSelectionSw1Pri[2] = configPage2.veMapSelectionInj3Pri;       // |
@@ -225,8 +230,8 @@ void initialiseAll()
 
     if(configPage10.stagingEnabled == true)
     {
-    uint32_t totalInjector = configPage10.stagedInjSizePri + configPage10.stagedInjSizeSec;
-    /*
+      uint32_t totalInjector = configPage10.stagedInjSizePri + configPage10.stagedInjSizeSec;
+      /*
         These values are a percentage of the req_fuel value that would be required for each injector channel to deliver that much fuel.
         Eg:
         Pri injectors are 250cc
@@ -235,9 +240,9 @@ void initialiseAll()
 
         staged_req_fuel_mult_pri = 300% (The primary injectors would have to run 3x the overall PW in order to be the equivalent of the full 750cc capacity
         staged_req_fuel_mult_sec = 150% (The secondary injectors would have to run 1.5x the overall PW in order to be the equivalent of the full 750cc capacity
-    */
-    staged_req_fuel_mult_pri = (100 * totalInjector) / configPage10.stagedInjSizePri;
-    staged_req_fuel_mult_sec = (100 * totalInjector) / configPage10.stagedInjSizeSec;
+      */
+      staged_req_fuel_mult_pri = (100 * totalInjector) / configPage10.stagedInjSizePri;
+      staged_req_fuel_mult_sec = (100 * totalInjector) / configPage10.stagedInjSizeSec;
     }
 
     //Begin the main crank trigger interrupt pin setup
@@ -259,8 +264,10 @@ void initialiseAll()
 
     noInterrupts();
     initialiseTriggers();
-    if(configPage2.exTrigModeSelect != 0) { initialiseExternalTrigger(); }             //[PJSC] For External Trigger
-    if(configPage2.dutyPulseCaptureEnabled == true) { initialiseCaptureDutyPulse(); }  //[PJSC] For capturing duty pulse
+    if(configPage2.exTrigModeSelect != 0) { initialiseExternalTrigger(); }               //[PJSC] For External Trigger
+//[PJSC v1.03]    if(configPage2.dutyPulseCaptureEnabled == true) { initialiseCaptureDutyPulse(); }    //[PJSC] For capturing duty pulse
+    if(configPage2.dutyPulseCaptureEnabled != 0) { initialiseCaptureDutyPulse(); }       //[PJSC v1.03] For capturing duty pulse
+    if(configPage2.dutyPulseCaptureEnabled2 == true) { initialiseCaptureDutyPulse2(); }  //[PJSC] For capturing duty pulse
 
     //End crank triger interrupt attachment
     req_fuel_uS = req_fuel_uS / engineSquirtsPerCycle; //The req_fuel calculation above gives the total required fuel (At VE 100%) in the full cycle. If we're doing more than 1 squirt per cycle then we need to split the amount accordingly. (Note that in a non-sequential 4-stroke setup you cannot have less than 2 squirts as you cannot determine the stroke to make the single squirt on)
@@ -313,13 +320,19 @@ void initialiseAll()
         //Sequential ignition works identically on a 2 cylinder whether it's odd or even fire (With the default being a 180 degree second cylinder). 
         if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) ) { CRANK_ANGLE_MAX_IGN = 720; }
 
-//[PJSC v1.02]        if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) )
-        if ( (configPage2.injLayout == INJ_SEQUENTIAL) || (configPage2.injLayout == INJ_SEMISEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) )
+        if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) )
         {
           CRANK_ANGLE_MAX_INJ = 720;
           currentStatus.nSquirts = 1;
           req_fuel_uS = req_fuel_uS * 2;
         }
+        else if ( (configPage2.injLayout == INJ_SEMISEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) )   //[PJSC v1.03]
+        {                                                                                                   // |
+          CRANK_ANGLE_MAX_INJ = 720;                                                                        // |
+          currentStatus.nSquirts = 1;                                                                       // |
+          req_fuel_uS = req_fuel_uS * 2;                                                                    // V
+        }                                                                                                   //[PJSC v1.03]
+
         //The below are true regardless of whether this is running sequential or not
 //[PJSC v1.02]        if (configPage2.engineType == EVEN_FIRE ) { channel2InjDegrees = 180; }
 //[PJSC v1.02]        else { channel2InjDegrees = configPage2.oddfire2; }
@@ -336,8 +349,10 @@ void initialiseAll()
         else                                                     // |
         {                                                        // |
           channel2InjDegrees = configPage2.oddfire2;             // |
-          channel3InjDegrees = configPage2.oddfire3;             // |
-          channel4InjDegrees = configPage2.oddfire4;             // |
+//[PJSC v1.03]          channel3InjDegrees = configPage2.oddfire3;             // |
+//[PJSC v1.03]          channel4InjDegrees = configPage2.oddfire4;             // |
+          channel3InjDegrees = channel1InjDegrees;               // |[PJSC v1.03]
+          channel4InjDegrees = configPage2.oddfire2;             // |[PJSC v1.03]
                                                                  // |
           channel3InjEnabled = true;                             // |
           channel4InjEnabled = true;                             // V
@@ -478,7 +493,8 @@ void initialiseAll()
           channel3InjEnabled = true;                    // V
           channel4InjEnabled = true;                    //[PJSC v1.02]
         }
-        else if (configPage2.injLayout == INJ_SEQUENTIAL)
+//[PJSC v1.03]        else if (configPage2.injLayout == INJ_SEQUENTIAL)
+        else if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) )     //[PJSC v1.03]
         {
           channel2InjDegrees = 180;
           channel3InjDegrees = 360;
@@ -491,6 +507,19 @@ void initialiseAll()
           currentStatus.nSquirts = 1;
           req_fuel_uS = req_fuel_uS * 2;
         }
+
+        if (configPage2.engineType == ODD_FIRE )                                         //[PJSC v1.03]
+        {                                                                                // |
+          channel2InjDegrees = configPage2.oddfire2;                                     // |
+          channel3InjDegrees = configPage2.oddfire3;                                     // |
+          channel4InjDegrees = configPage2.oddfire4;                                     // |
+                                                                                         // |
+          channel3InjEnabled = true;                                                     // |
+          channel4InjEnabled = true;                                                     // |
+                                                                                         // |
+          if (configPage2.strokes == FOUR_STROKE) { CRANK_ANGLE_MAX_INJ = 720; }         // |
+          else { CRANK_ANGLE_MAX_INJ = 360; }                                            // V
+        }                                                                                //[PJSC v1.03]
 
         //Check if injector staging is enabled
         if(configPage10.stagingEnabled == true)
@@ -669,36 +698,6 @@ void initialiseAll()
         channel2InjDegrees = 180;
         break;
     }
-
-    switch (configPage2.nInjectors) {              //[PJSC v1.01] Multi injector support for 2stroke
-      case 1:                                      // |
-          channel1InjEnabled = true;               // |
-          break;                                   // |
-      case 2:                                      // |
-          channel1InjEnabled = true;               // |
-          channel2InjEnabled = true;               // |
-          break;                                   // |
-      case 3:                                      // |
-          channel1InjEnabled = true;               // |
-          channel2InjEnabled = true;               // |
-          channel3InjEnabled = true;               // |
-                                                   // |
-          channel3InjDegrees = channel1InjDegrees; // |
-          break;                                   // |
-      case 4:                                      // |
-          channel1InjEnabled = true;               // |
-          channel2InjEnabled = true;               // |
-          channel3InjEnabled = true;               // |
-          channel4InjEnabled = true;               // |
-                                                   // |
-          channel3InjDegrees = channel1InjDegrees; // |
-          channel4InjDegrees = channel2InjDegrees; // |
-          break;                                   // |
-      default:                                     // |
-          channel1InjEnabled = true;               // |
-          channel2InjEnabled = true;               // |
-          break;                                   // V
-    }                                              //[PJSC v1.01]
 
     if(CRANK_ANGLE_MAX_IGN == CRANK_ANGLE_MAX_INJ) { CRANK_ANGLE_MAX = CRANK_ANGLE_MAX_IGN; } //If both the injector max and ignition max angles are the same, make the overall system max this value
     else if (CRANK_ANGLE_MAX_IGN > CRANK_ANGLE_MAX_INJ) { CRANK_ANGLE_MAX = CRANK_ANGLE_MAX_IGN; }
@@ -1429,7 +1428,8 @@ void setPinMapping(byte boardID)
       pinO2 = A2;            //O2 Sensor pin
 //[PJSC v1.02]      pinExValve = A6;  //[PJSC] Exhaust valve position input pin
       pinAnalogInput1 = A6;  //[PJSC v1.02] For selectable analog input
-      pinBaro = A0;          //[PJSC] For Barometric sensor suppot
+//[PJSC v1.03]      pinBaro = A0;          //[PJSC] For Barometric sensor suppot
+      pinAnalogInput2 = A0;  //[PJSC v1.03] For selectable analog input2
       pinBat = A1;           //Battery reference voltage pin
       pinDisplayReset = 48;  // OLED reset pin
       pinTachOut = 49;       //Tacho output pin  (Goes to ULN2803)
@@ -1457,6 +1457,52 @@ void setPinMapping(byte boardID)
       pinMuxout4 = 15;       //[PJSC v1.01] For MUX output setting
       break;
 
+    case 61:
+      //[PJSC]Pin mappings as per the PJSC ver1.10 shield (2021.06.29)
+      pinInjector1 = 10;     //Output pin injector 1 is on
+      pinInjector2 = 12;     //Output pin injector 2 is on
+      pinInjector3 = 45;     //Output pin injector 3 is on
+      pinInjector4 = 46;     //Output pin injector 4 is on
+      pinInjector5 = 47;     //Output pin injector 5 is on
+      pinCoil1 = 40;         //Pin for coil 1
+      pinCoil2 = 38;         //Pin for coil 2
+      pinCoil3 = 41;         //Pin for coil 3
+      pinCoil4 = 39;         //Pin for coil 4
+      pinCoil5 = 34;         //Pin for coil 5 PLACEHOLDER value for now
+      pinTrigger = 21;       //The CAS pin
+      pinTrigger2 = 20;      //The Cam Sensor pin
+      pinO2_2 = A0;          //O2 Sensor 2nd pin
+      pinBaro = A1;          //[PJSC] For Barometric sensor suppot
+      pinO2   = A2;          //O2 Sensor pin
+      pinBat  = A3;          //Battery reference voltage pin
+      pinEGT  = A6;          //
+      pinIAT  = A9;          //IAT sensor pin
+      pinTPS  = A10;         //TPS input pin
+      pinCLT  = A13;         //CLS sensor pin
+      pinMAP  = A14;         //MAP sensor pin
+      pinDisplayReset = 48;  //OLED reset pin
+      pinTachOut = 49;       //Tacho output pin  (Goes to ULN2803)
+      pinIdle1 = 5;          //Single wire idle control                 //[PJSC v1.01]
+      pinIdle2 = 7;          //2 wire idle control
+      pinBoost = 9;          //Boost control
+      pinVVT_1 = 11;         //Default VVT output
+      pinFuelPump = 44;      //Fuel pump output  (Goes to ULN2803)
+      pinStepperDir = 16;    //Direction pin  for DRV8825 driver
+      pinStepperStep = 17;   //Step pin for DRV8825 driver
+      pinStepperEnable = 24; //Enable pin for DRV8825
+      pinFan = 31;           //Pin for the fan output (Goes to ULN2803)  //[PJSC v1.01]
+      pinLaunch = 13;        //Can be overwritten below
+      pinFlex = 2;           // Flex sensor (Must be external interrupt enabled)
+      pinExtTrigger = 3;     //[PJSC] External Trigger
+      pinCaptureDuty1 = 18;  //[PJSC] For capturing duty pulse
+      pinCaptureDuty2 = 19;  //[PJSC] For capturing duty pulse
+      pinResetControl = 43;  //Reset control output
+      pinMuxout1 = 6;        //[PJSC v1.01] For MUX output setting
+      pinMuxout2 = 8;        //[PJSC v1.01] For MUX output setting
+      pinMuxout3 = 14;       //[PJSC v1.01] For MUX output setting
+      pinMuxout4 = 15;       //[PJSC v1.01] For MUX output setting
+      break;
+/*[PJSC v1.01]
     case 61:
       //[PJSC]Pin mappings as per the PJSC ver0.2 shield (2018.02.19)
       pinInjector1 = 10; //Output pin injector 1 is on
@@ -1573,6 +1619,7 @@ void setPinMapping(byte boardID)
       pinMuxout3 = 14;      //[PJSC v1.01] For MUX output setting
       pinMuxout4 = 15;      //[PJSC v1.01] For MUX output setting
       break;
+[PJSC v1.01]*/
 
     default:
     #ifndef SMALL_FLASH_MODE //No support for bluepill here anyway
@@ -1791,6 +1838,24 @@ void setPinMapping(byte boardID)
       break;
   }
 
+  //[PJSC v1.03] Setup Analog input2 pins
+  switch (configPage2.analogInputPortSelection2)
+  {
+    case ANALOG_INPUT_OFF:
+      break;
+
+    case ANALOG_BARO:
+      pinBaro = pinAnalogInput2;
+      break;
+
+    case ANALOG_EGT:
+      pinEGT = pinAnalogInput2;
+      break;
+
+    default:
+      break;
+  }
+
   /* Reset control is a special case. If reset control is enabled, it needs its initial state set BEFORE its pinMode.
      If that doesn't happen and reset control is in "Serial Command" mode, the Arduino will end up in a reset loop
      because the control pin will go low as soon as the pinMode is set to OUTPUT. */
@@ -1890,6 +1955,7 @@ void setPinMapping(byte boardID)
       pinMode(pinBat, INPUT);
       pinMode(pinBaro, INPUT);
       pinMode(pinExValve, INPUT); //[PJSC] For External Trigger
+      pinMode(pinEGT, INPUT);     //[PJSC v1.03] For Exhaust Gas Temperature Sensor
     #endif
   #endif
   pinMode(pinTrigger, INPUT);
@@ -2306,38 +2372,22 @@ void initialiseTriggers()
       //Suzuki KATANA
       triggerSetup_KATANA();
       triggerHandler = triggerPri_KATANA;
-      triggerSecondaryHandler = triggerSec_KATANA;
-      decoderHasSecondary = true;
       getRPM = getRPM_KATANA;
       getCrankAngle = getCrankAngle_KATANA;
       triggerSetEndTeeth = triggerSetEndTeeth_KATANA;
 
-      if(configPage4.TrigEdge == 0) { primaryTriggerEdge = RISING; } // Attach the crank trigger wheel interrupt (Hall sensor drags to ground when triggering)
-      else { primaryTriggerEdge = FALLING; }
-      if(configPage4.TrigEdgeSec == 0) { secondaryTriggerEdge = RISING; }
-      else { secondaryTriggerEdge = FALLING; }
-
+      primaryTriggerEdge = CHANGE;
       attachInterrupt(triggerInterrupt, triggerHandler, primaryTriggerEdge);
-      attachInterrupt(triggerInterrupt2, triggerSecondaryHandler, secondaryTriggerEdge);
-      break;
 
-    case 19:
-      //Suzuki KATANA2
-      triggerSetup_KATANA2();
-      triggerHandler = triggerPri_KATANA2;
-      triggerSecondaryHandler = triggerSec_KATANA2;
-      decoderHasSecondary = true;
-      getRPM = getRPM_KATANA2;
-      getCrankAngle = getCrankAngle_KATANA2;
-      triggerSetEndTeeth = triggerSetEndTeeth_KATANA2;
+      if(configPage2.useMAPasSync == 1)
+      {
+        triggerSecondaryHandler = triggerSec_KATANA;
 
-      if(configPage4.TrigEdge == 0) { primaryTriggerEdge = RISING; } // Attach the crank trigger wheel interrupt (Hall sensor drags to ground when triggering)
-      else { primaryTriggerEdge = FALLING; }
-      if(configPage4.TrigEdgeSec == 0) { secondaryTriggerEdge = FALLING; }
-      else { secondaryTriggerEdge = RISING; }
+        if(configPage4.TrigEdgeSec == 0) { secondaryTriggerEdge = RISING; }
+        else { secondaryTriggerEdge = FALLING; }
+        attachInterrupt(triggerInterrupt2, triggerSecondaryHandler, secondaryTriggerEdge);
+      }
 
-      attachInterrupt(triggerInterrupt, triggerHandler, primaryTriggerEdge);
-      attachInterrupt(triggerInterrupt2, triggerSecondaryHandler, secondaryTriggerEdge);
       break;
 
     default:
@@ -2395,6 +2445,18 @@ void initialiseExternalTrigger()     //[PJSC] For External Trigger Interruot
       attachInterrupt(extTriggerInterrupt, changeMapSelectSw, CHANGE);
       break;
 
+    case EXTRIG_MISFIRE_DETECTION:
+      currentStatus.sparkRPM = 0;
+      if(configPage2.externalTrigEdge == 0) { attachInterrupt(extTriggerInterrupt, misfireDetect, RISING); }
+      else { attachInterrupt(extTriggerInterrupt, misfireDetect, FALLING); }
+      break;
+
+    case EXTRIG_VIECLE_SPEED:
+      currentStatus.viecleSpeed = 0;
+      if(configPage2.externalTrigEdge == 0) { attachInterrupt(extTriggerInterrupt, viecleSpeed, RISING); }
+      else { attachInterrupt(extTriggerInterrupt, viecleSpeed, FALLING); }
+      break;
+
     default:
       currentStatus.extTriggerAngle = 0;
       if(configPage2.externalTrigEdge == 0) { attachInterrupt(extTriggerInterrupt, captureExtTrigger, RISING); }
@@ -2437,20 +2499,32 @@ void initialiseCaptureDutyPulse()     //[PJSC] For capturing duty pulse
   pinMode(pinCaptureDuty1, INPUT);
   detachInterrupt(captureDutyPulseInterrupt);
 
-  currentStatus.dutyON_time = currentStatus.dutyOFF_time = micros();
-  currentStatus.dutyCaptureCount = 0;
-  currentStatus.dutyRatio = 0;
-  currentStatus.dutyFreq = 0;
+  switch (configPage2.dutyPulseCaptureEnabled) {
+    case DIGITAL_INPUT2_PWM_CAPT:
+      currentStatus.dutyON_time = currentStatus.dutyOFF_time = micros();
+      currentStatus.dutyCaptureCount = 0;
+      currentStatus.dutyRatio = 0;
+      currentStatus.dutyFreq = 0;
 
-  if(configPage2.dutyPulseOnLevel == 0)
-  {
-    attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseONtime, RISING);
-    attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseOFFtime, FALLING);
+      if(configPage2.dutyPulseOnLevel == 0)
+      {
+        attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseONtime, RISING);
+        attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseOFFtime, FALLING);
+      }
+      else {
+        attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseONtime, FALLING);
+        attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseOFFtime, RISING);
+      }
+      break;
+
+    case DIGITAL_INPUT2_SHIFT:
+      attachInterrupt(captureDutyPulseInterrupt, setDecelerationCorrection, FALLING);
+      break;
+
+    default:
+      break;
   }
-  else {
-    attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseONtime, FALLING);
-    attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseOFFtime, RISING);
-  }
+
 }
 
 void initialiseCaptureDutyPulse2()    //[PJSC] For capturing duty pulse

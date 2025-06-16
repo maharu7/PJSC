@@ -447,3 +447,16 @@ void readExValvePosition()
 
   currentStatus.exValvePosition = map(tempValvePosADC, configPage2.exValvePosMin, configPage2.exValvePosMax, 0, 100); //Take the raw Exhaust valve position ADC value and convert it into a exValvePos% based on the calibrated values
 }
+
+//[PJSC v1.03] For Exhaust Gas Temperature sennsor
+void readEGT()
+{
+  if ( configPage2.analogInputPortSelection2 == 2 )
+  {
+    int tempReading;
+    tempReading = analogRead(pinEGT);
+    tempReading = fastMap1023toX(analogRead(pinEGT), 511); //Get the current EGT value.
+
+    currentStatus.EGTADC = ADC_FILTER(tempReading, configPage4.ADCFILTER_O2, currentStatus.EGTADC);
+  }
+}

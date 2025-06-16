@@ -157,18 +157,14 @@ uint16_t getRPM_KATANA();         //[PJSC ver1.02] For supporting KATANA trigger
 int getCrankAngle_KATANA();       //[PJSC ver1.02] For supporting KATANA trigger
 void triggerSetEndTeeth_KATANA(); //[PJSC ver1.02] For supporting KATANA trigger
 
-void triggerSetup_KATANA2();       //[PJSC ver1.02] For supporting KATANA trigger
-void triggerPri_KATANA2();         //[PJSC ver1.02] For supporting KATANA trigger
-void triggerSec_KATANA2();         //[PJSC ver1.02] For supporting KATANA trigger
-uint16_t getRPM_KATANA2();         //[PJSC ver1.02] For supporting KATANA trigger
-int getCrankAngle_KATANA2();       //[PJSC ver1.02] For supporting KATANA trigger
-void triggerSetEndTeeth_KATANA2(); //[PJSC ver1.02] For supporting KATANA trigger
-
 void captureExtTrigger();         //[PJSC] For External Trigger
 void captureDutyPulseONtime();    //[PJSC] For capturing duty pulse
 void captureDutyPulseOFFtime();   //[PJSC] For capturing duty pulse
 void captureDutyPulseONtime2();   //[PJSC] For capturing duty pulse
 void captureDutyPulseOFFtime2();  //[PJSC] For capturing duty pulse
+
+void misfireDetect();             //[PJSC v1.03] For misfire detection
+void viecleSpeed();               //[PJSC v1.03] For capturing viecle speed
 
 unsigned long MAX_STALL_TIME = 500000UL; //The maximum time (in uS) that the system will continue to function before the engine is considered stalled/stopped. This is unique to each decoder, depending on the number of teeth etc. 500000 (half a second) is used as the default value, most decoders will be much less.
 
@@ -179,7 +175,40 @@ volatile unsigned long curGap2;
 volatile unsigned long lastGap;
 volatile unsigned long targetGap;
 volatile unsigned long compositeLastToothTime;
-volatile unsigned long flipGap;     //[PJSC v1.02]
+volatile unsigned long flipGap;             //[PJSC v1.02]
+//****************** [PJSC v1.03] ******************
+volatile unsigned long curIgnTime = 0;      //[PJSC v1.03] For misfire detection
+volatile unsigned long lastIgnTime = 0;     //[PJSC v1.03] For misfire detection
+volatile unsigned long curSpeedTime = 0;    //[PJSC v1.03] For capturing viecle speed
+volatile unsigned long lastSpeedTime = 0;   //[PJSC v1.03] For capturing viecle speed
+volatile unsigned long speedPulseGap = 0;   //[PJSC v1.03] For capturing viecle speed
+
+volatile unsigned long nextGap;
+volatile unsigned long ignGap;
+volatile unsigned long curGap3;
+volatile unsigned long curGap5;
+volatile unsigned long targetGap3;
+volatile unsigned long targetGap5;
+volatile unsigned long lastGap3;
+volatile unsigned long toothLastMinusTwoToothTime;
+volatile unsigned long toothLastMinusThreeToothTime;
+volatile byte angleRef_tooth;
+volatile byte angleRef_tooth2;
+volatile byte maxGap3_tooth;
+volatile byte maxGap3Ratio_tooth;
+volatile byte initialRotationToothCount;
+volatile bool preSync;
+volatile bool preSyncLoss;
+volatile bool firstSyncDetect;
+volatile uint16_t maxGap3Ratio;
+
+int16_t toothNextGapRatios[12];
+int16_t maxGap3Angle;
+
+#define MULTIPLY_128 7
+#define INITIAL_TOOTH_KATANA 1
+#define GAP_THRESH_BITSHIFT_15 15
+//****************** [PJSC v1.03] ******************
 
 volatile int toothCurrentCount = 0; //The current number of teeth (Onec sync has been achieved, this can never actually be 0
 volatile byte toothSystemCount = 0; //Used for decoders such as Audi 135 where not every tooth is used for calculating crank angle. This variable stores the actual number of teeth, not the number being used to calculate crank angle

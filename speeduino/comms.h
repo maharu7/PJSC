@@ -19,7 +19,9 @@
 #define ve3MapPage   11 //[PJSC v1.01] Config Page 12
 
 //[PJSC]#define SERIAL_PACKET_SIZE   90 //Must match ochBlockSize in ini file
-#define SERIAL_PACKET_SIZE   116 //[PJSC v1.02] Extend serial packet block size
+//[PJSC v1.03]#define SERIAL_PACKET_SIZE   116 //[PJSC v1.02] Extend serial packet block size
+//[PJSC v1.03_20240118_test]#define SERIAL_PACKET_SIZE   138 //[PJSC v1.03] Extend serial packet block size
+#define SERIAL_PACKET_SIZE   131 //[PJSC v1.03_20240118_test]
 
 byte currentPage = 1;//Not the same as the speeduino config page numbers
 bool isMap = true;

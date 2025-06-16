@@ -68,6 +68,7 @@ void readO2();
 void readBat();
 void readBaro();
 void readExValvePosition(); //[PJSC] For External Trigger
+void readEGT();             //[PJSC v1.03] For Exhaust Gas Temperature sennsor
 
 #if defined(ANALOG_ISR)
 volatile int AnChannel[15];

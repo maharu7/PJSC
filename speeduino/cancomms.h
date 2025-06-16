@@ -1,7 +1,8 @@
 #ifndef CANCOMMS_H
 #define CANCOMMS_H
 
-#define CAN_PACKET_SIZE   75
+//[PJSC v1.03]#define CAN_PACKET_SIZE   75
+#define CAN_PACKET_SIZE   138       //[PJSC v1.03]
 
 uint8_t currentcanCommand;
 uint8_t currentCanPage = 1;//Not the same as the speeduino config page numbers

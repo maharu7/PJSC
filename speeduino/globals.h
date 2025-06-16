@@ -255,31 +255,38 @@ const int16_t npage_size[12] PROGMEM = {0,288,128,288,128,288,128,240,192,192,28
 //const byte page11_size = 128;
 #define MAP_PAGE_SIZE 288
 
-#define NUM_SQUIRT_DEVICE    4    //[PJSC]
-#define SELECT_VE1           0    //[PJSC]
-#define SELECT_VE2           1    //[PJSC]
-#define SELECT_VE3           2    //[PJSC v1.01]
-#define SELECT_VE4           3    //[PJSC v1.01]
-#define MULTI_VE_COUNT       4    //[PJSC v1.01]
-#define SINGLE_VE_COUNT      1    //[PJSC v1.01]
+#define NUM_SQUIRT_DEVICE        4    //[PJSC]
+#define SELECT_VE1               0    //[PJSC]
+#define SELECT_VE2               1    //[PJSC]
+#define SELECT_VE3               2    //[PJSC v1.01]
+#define SELECT_VE4               3    //[PJSC v1.01]
+#define MULTI_VE_COUNT           4    //[PJSC v1.01]
+#define SINGLE_VE_COUNT          1    //[PJSC v1.01]
 
-#define EXTRIG_SPARK_DISABLE 0    //[PJSC v1.01] For MAP switching
-#define EXTRIG_SPARK_CAPTURE 1    // V
-#define EXTRIG_MAP_SELECT    2    //[PJSC v1.01] For MAP switching
-#define EXTRIG_SPARK_DISABLE 0    //[PJSC v1.01] For MAP switching
+#define EXTRIG_SPARK_DISABLE     0    //[PJSC v1.01] For MAP switching
+#define EXTRIG_SPARK_CAPTURE     1    // V
+#define EXTRIG_MAP_SELECT        2    //[PJSC v1.01] For MAP switching
+#define EXTRIG_MISFIRE_DETECTION 3    //[PJSC v1.03] For Misfire detection
+#define EXTRIG_VIECLE_SPEED      4    //[PJSC v1.03] For capturing viecle speed
 
-#define MUXOUT_OFF           0    //[PJSC v1.01] MUX output selection
-#define MUXOUT_IDLE          1    //[PJSC v1.01] MUX output selection
-#define MUXOUT_FAN           2    //[PJSC v1.01] MUX output selection
-#define MUXOUT_LAUNCH        3    //[PJSC v1.01] MUX output selection
-#define MUXOUT_FUELPUMP      4    //[PJSC v1.01] MUX output selection
-#define MUXOUT_BOOST         5    //[PJSC v1.01] MUX output selection
-#define MUXOUT_VVT           6    //[PJSC v1.01] MUX output selection
-#define MUXOUT_TACH          7    //[PJSC v1.01] MUX output selection
+#define DIGITAL_INPUT2_DISABLE   0    //[PJSC v1.03]
+#define DIGITAL_INPUT2_PWM_CAPT  1    //[PJSC v1.03]
+#define DIGITAL_INPUT2_SHIFT     2    //[PJSC v1.03]
 
-#define ANALOG_INPUT_OFF     0    //[PJSC v1.02] Analog input selection
-#define ANALOG_EXVALVE       1    //[PJSC v1.02] Analog input selection
-#define ANALOG_O2_SEC        2    //[PJSC v1.02] Analog input selection
+#define MUXOUT_OFF               0    //[PJSC v1.01] MUX output selection
+#define MUXOUT_IDLE              1    //[PJSC v1.01] MUX output selection
+#define MUXOUT_FAN               2    //[PJSC v1.01] MUX output selection
+#define MUXOUT_LAUNCH            3    //[PJSC v1.01] MUX output selection
+#define MUXOUT_FUELPUMP          4    //[PJSC v1.01] MUX output selection
+#define MUXOUT_BOOST             5    //[PJSC v1.01] MUX output selection
+#define MUXOUT_VVT               6    //[PJSC v1.01] MUX output selection
+#define MUXOUT_TACH              7    //[PJSC v1.01] MUX output selection
+
+#define ANALOG_INPUT_OFF         0    //[PJSC v1.02] Analog input selection
+#define ANALOG_EXVALVE           1    //[PJSC v1.02] Analog input selection
+#define ANALOG_O2_SEC            2    //[PJSC v1.02] Analog input selection
+#define ANALOG_BARO              1    //[PJSC v1.03] Analog input selection2
+#define ANALOG_EGT               2    //[PJSC v1.03] Analog input selection2
 
 struct table3D fuelTable; //16x16 fuel map
 struct table3D fuelTable2; //16x16 fuel map2 [PJSC]
@@ -306,6 +313,7 @@ struct table2D flexAdvTable;   //6 bin flex fuel correction table for timing adv
 struct table2D flexBoostTable; //6 bin flex fuel correction table for boost adjustments (2D)
 struct table2D knockWindowStartTable;
 struct table2D knockWindowDurationTable;
+struct table2D barometricCorrectionTable; //[PJSC v1.03]9 bin barometric pressure correction (2D)
 
 //These are for the direct port manipulation of the injectors, coils and aux outputs
 volatile PORT_TYPE *inj1_pin_port;
@@ -392,7 +400,7 @@ byte secondaryTriggerEdge;
 int CRANK_ANGLE_MAX = 720;
 int CRANK_ANGLE_MAX_IGN = 360;
 int CRANK_ANGLE_MAX_INJ = 360; //The number of crank degrees that the system track over. 360 for wasted / timed batch and 720 for sequential
-  
+
 
 //This needs to be here because using the config page directly can prevent burning the setting
 byte resetControl = RESET_CONTROL_DISABLED;
@@ -418,7 +426,8 @@ struct statuses {
   unsigned long TPS_time; //The time the TPS sample was taken
   unsigned long TPSlast_time; //The time the previous TPS sample was taken
   byte tpsADC; //0-255 byte representation of the TPS
-  byte tpsDOT;
+//[PJSC v1.03]  byte tpsDOT;
+  int tpsDOT;  //[PJSC v1.03]
   volatile int rpmDOT;
   byte VE;
   byte VE2;    //[PJSC]
@@ -437,7 +446,8 @@ struct statuses {
   byte dwellCorrection; //The amount of correction being applied to the dwell time.
   byte battery10; //The current BRV in volts (multiplied by 10. Eg 12.5V = 125)
   int8_t advance; //Signed 8 bit as advance can now go negative (ATDC)
-  byte corrections;
+//[PJSC v1.03]  byte corrections;
+  uint16_t corrections;      //[PJSC v1.03]
   int16_t TAEamount; //The amount of accleration enrichment currently being applied
   byte egoCorrection; //The amount of closed loop AFR enrichment currently being applied
   byte wueCorrection; //The amount of warmup enrichment currently being applied
@@ -446,6 +456,7 @@ struct statuses {
   byte launchCorrection; //The amount of correction being applied if launch control is active
   byte flexCorrection; //Amount of correction being applied to compensate for ethanol content
   int8_t flexIgnCorrection; //Amount of additional advance being applied based on flex. Note the type as this allows for negative values
+  byte baroCorrection; //[PJSC v1.03]The amount of barometric pressure adjustment currently being applied
   byte afrTarget;
   byte idleDuty;
   bool idleUpActive;
@@ -497,40 +508,50 @@ struct statuses {
   bool knockActive;
   bool toothLogEnabled;
   bool compositeLogEnabled;
-  byte exValvePosition;             //[PJSC] For External Trigger
-  byte exValvePositionADC;          //[PJSC] For External Trigger
-  int extTriggerAngle;              //[PJSC] For External Trigger
-  int extTriggerAngle_last;         //[PJSC] For External Trigger
-  byte dutyCaptureCount;            //[PJSC] For capturing duty pulse
-  byte dutyCaptureCount2;           //[PJSC] For capturing duty pulse
-  int dutyFreq;                     //[PJSC] For capturing duty pulse
-  int dutyFreq2;                    //[PJSC] For capturing duty pulse
-  int dutyRatio;                    //[PJSC] For capturing duty pulse
-  int dutyRatio2;                   //[PJSC] For capturing duty pulse
-  unsigned long dutyON_time;        //[PJSC] For capturing duty pulse
-  unsigned long dutyONlast_time;    //[PJSC] For capturing duty pulse
-  unsigned long dutyOFF_time;       //[PJSC] For capturing duty pulse
-  unsigned long dutyOFFlast_time;   //[PJSC] For capturing duty pulse
-  unsigned long cycle_t;            //[PJSC] For capturing duty pulse
-  unsigned long on_t;               //[PJSC] For capturing duty pulse
-  unsigned long dutyON_time2;       //[PJSC] For capturing duty pulse
-  unsigned long dutyONlast_time2;   //[PJSC] For capturing duty pulse
-  unsigned long dutyOFF_time2;      //[PJSC] For capturing duty pulse
-  unsigned long dutyOFFlast_time2;  //[PJSC] For capturing duty pulse
-  unsigned long cycle_t2;           //[PJSC] For capturing duty pulse
-  unsigned long on_t2;              //[PJSC] For capturing duty pulse
-  byte testMode;                    //[PJSC v1.01] For test mode
-  byte testModeActive;              //[PJSC v1.01] For test mode
-  int16_t testCnt;                  //[PJSC v1.01] For test mode
-  boolean mapSelectSw;              //[PJSC v1.01] For MAP switching
-  byte veMapSelectionSw1Pri[4];     //[PJSC v1.01] For x4 Fuel table support
-  byte veMapSelectionSw1Sec[4];     //[PJSC v1.01]  |
-  byte veMapSelectionSw2Pri[4];     //[PJSC v1.01]  V
-  byte veMapSelectionSw2Sec[4];     //[PJSC v1.01] For x4 Fuel table support
-  byte afr_analyze1;                //[PJSC v1.02] For AFR sensor selection
-  byte afr_analyze2;                // |
-  byte afr_analyze3;                // V
-  byte afr_analyze4;                //[PJSC v1.02] For AFR sensor selection
+  byte exValvePosition;                //[PJSC] For External Trigger
+  byte exValvePositionADC;             //[PJSC] For External Trigger
+  int extTriggerAngle;                 //[PJSC] For External Trigger
+  int extTriggerAngle_last;            //[PJSC] For External Trigger
+  uint16_t extTriggerRPM;              //[PJSC v1.03] For External Trigger
+  uint16_t extTriggerLoad;             //[PJSC v1.03] For External Trigger
+  byte dutyCaptureCount;               //[PJSC] For capturing duty pulse
+  byte dutyCaptureCount2;              //[PJSC] For capturing duty pulse
+  int dutyFreq;                        //[PJSC] For capturing duty pulse
+  int dutyFreq2;                       //[PJSC] For capturing duty pulse
+  int dutyRatio;                       //[PJSC] For capturing duty pulse
+  int dutyRatio2;                      //[PJSC] For capturing duty pulse
+  unsigned long dutyON_time = 0;       //[PJSC] For capturing duty pulse
+  unsigned long dutyONlast_time = 0;   //[PJSC] For capturing duty pulse
+  unsigned long dutyOFF_time = 0;      //[PJSC] For capturing duty pulse
+  unsigned long dutyOFFlast_time = 0;  //[PJSC] For capturing duty pulse
+  unsigned long cycle_t;               //[PJSC] For capturing duty pulse
+  unsigned long on_t;                  //[PJSC] For capturing duty pulse
+  unsigned long dutyON_time2 = 0;      //[PJSC] For capturing duty pulse
+  unsigned long dutyONlast_time2 = 0;  //[PJSC] For capturing duty pulse
+  unsigned long dutyOFF_time2 = 0;     //[PJSC] For capturing duty pulse
+  unsigned long dutyOFFlast_time2 = 0; //[PJSC] For capturing duty pulse
+  unsigned long cycle_t2;              //[PJSC] For capturing duty pulse
+  unsigned long on_t2;                 //[PJSC] For capturing duty pulse
+  unsigned long ignGap = 0;            //[PJSC v1.03] For misfire detection
+  byte testMode;                       //[PJSC v1.01] For test mode
+  byte testModeActive;                 //[PJSC v1.01] For test mode
+  int16_t testCnt;                     //[PJSC v1.01] For test mode
+  boolean mapSelectSw;                 //[PJSC v1.01] For MAP switching
+  byte veMapSelectionSw1Pri[4];        //[PJSC v1.01] For x4 Fuel table support
+  byte veMapSelectionSw1Sec[4];        //[PJSC v1.01]  |
+  byte veMapSelectionSw2Pri[4];        //[PJSC v1.01]  V
+  byte veMapSelectionSw2Sec[4];        //[PJSC v1.01] For x4 Fuel table support
+  byte afr_analyze1;                   //[PJSC v1.02] For AFR sensor selection
+  byte afr_analyze2;                   // |
+  byte afr_analyze3;                   // V
+  byte afr_analyze4;                   //[PJSC v1.02] For AFR sensor selection
+  byte dualVE1;                        //[PJSC v1.03] For Dual Fuel Load
+  byte dualVE2;                        //[PJSC v1.03] For Dual Fuel Load
+  byte dualVE3;                        //[PJSC v1.03] For Dual Fuel Load
+  byte dualVE4;                        //[PJSC v1.03] For Dual Fuel Load
+  int EGTADC;                          //[PJSC v1.03] For Exhaust Gas Temperature input
+  uint16_t sparkRPM;                   //[PJSC v1.03] For misfire detection
+  uint16_t viecleSpeed;                //[PJSC v1.03] For capturing viecle speed
 
   //Helpful bitwise operations:
   //Useful reference: http://playground.arduino.cc/Code/BitMath
@@ -640,50 +661,59 @@ struct config2 {
   int8_t EMAPMin; //Must be signed
   uint16_t EMAPMax;
 
-  byte fanWhenOff : 1;      // Only run fan when engine is running
-  byte fanUnused : 7;
+  byte fanWhenOff : 1;               // Only run fan when engine is running
+  byte dfcoTPSdotEnabled : 1;        //[PJSC v1.03] For TPSdotDFCO
+  byte swIATcorrection: 1;           //[PJSCv1.03]
+  byte swTAE: 1;                     // |
+  byte swWUE: 1;                     // V
+  byte swCrankingEnrichment: 1;      //[PJSCv1.03]
+  byte fanUnused : 2;                //[PJSC v1.03] For TPSdotDFCO
+//[PJSC v1.03]  byte fanUnused : 7;
 
   //[PJSC]  byte unused1_70[57];
   byte pjscFreq;                     //[PJSC]    Offset 71
   byte exValvePosMin;                // |
   byte exValvePosMax;                // |
-  byte exTrigHysteresis;             // |
+  byte unused2_74;                   // |
   byte squirtDeviceType : 1;         // |
   byte multiVEmapEnabled: 1;         // |
   byte mapSeparationEnabled: 1;      // |
   byte mapSwitchingEnabled: 1;       // |
   byte dualFuelEnabled: 1;           // |
   byte secondaryFuelUsage: 1;        // |
-  byte fuelCorrectionEnabled: 1;     // |[PJSC v1.01]
-  byte unused2_75: 1;                // |
-  byte exTrigModeSelect : 2;         // | For External Trigger
+//[PJSC v1.03]  byte fuelCorrectionEnabled: 1;     // |[PJSC v1.01]
+//[PJSC v1.03]  byte unused2_75: 1;                // |
+  byte swBatVCorrection: 1;          // |[PJSC v1.03]
+  byte vvtSamplingRate: 1;           // |[PJSC v1.03]
+//[PJSC v1.03]  byte exTrigModeSelect : 2;         // | For External Trigger
+  byte exTrigModeSelect : 3;         // | [PJSC v1.03] For capturing viecle speed
   byte externalTrigEdge: 1;          // |  0: Rising, 1: Falling
 //[PJSC v1.02]  byte exValveCaptureEnabled: 1;     // | For capturing Exhaust valve position
-  byte exValveCalibrationMode: 1;    // | For support Exhaust Valve calibrationmode
+//[PJSC v1.03]  byte exValveCalibrationMode: 1;    // | For support Exhaust Valve calibrationmode
 //[PJSC v1.02]  byte unused2_76: 3;                // |
   byte analogInputPortSelection: 2;  // |[PJSC v1.02] For Analog input port selection
-  byte unused2_76: 2;                // |[PJSC v1.02]
-  byte dutyPulseCaptureEnabled: 1;   // | For capturing duty pulse ch1
-  byte dutyPulseCaptureEnabled2: 1;  // | For capturing duty pulse ch2
+  byte analogInputPortSelection2: 2; // |[PJSC v1.03]
+  byte dutyPulseCaptureEnabled: 2;   // | For capturing duty pulse ch1
+  byte dutyPulseCaptureEnabled2: 2;  // | For capturing duty pulse ch2
   byte dutyPulseOnLevel: 1;          // | For capturing duty pulse ch1, 0: high, 1: low
   byte dutyPulseOnLevel2: 1;         // | For capturing duty pulse ch2, 0: high, 1: low
-  byte unused2_77: 4;                // V
-  byte veMapSelectionInj1Pri: 4;     //[PJSCv1.10] For x4 Fuel table support
-  byte veMapSelectionInj1Sec: 4;     //[PJSCv1.10]  |
-  byte veMapSelectionInj2Pri: 4;     //[PJSCv1.10]  |
-  byte veMapSelectionInj2Sec: 4;     //[PJSCv1.10]  |
-  byte veMapSelectionInj3Pri: 4;     //[PJSCv1.10]  |
-  byte veMapSelectionInj3Sec: 4;     //[PJSCv1.10]  |
-  byte veMapSelectionInj4Pri: 4;     //[PJSCv1.10]  |
-  byte veMapSelectionInj4Sec: 4;     //[PJSCv1.10]  |
-  byte veMapSelectionInj1_2Pri: 4;   //[PJSCv1.10]  |
-  byte veMapSelectionInj1_2Sec: 4;   //[PJSCv1.10]  |
-  byte veMapSelectionInj2_2Pri: 4;   //[PJSCv1.10]  |
-  byte veMapSelectionInj2_2Sec: 4;   //[PJSCv1.10]  |
-  byte veMapSelectionInj3_2Pri: 4;   //[PJSCv1.10]  |
-  byte veMapSelectionInj3_2Sec: 4;   //[PJSCv1.10]  |
-  byte veMapSelectionInj4_2Pri: 4;   //[PJSCv1.10]  V
-  byte veMapSelectionInj4_2Sec: 4;   //[PJSCv1.10] For x4 Fuel table support
+  byte unused2_77: 2;                // V
+  byte veMapSelectionInj1Pri: 4;     //[PJSCv1.01] For x4 Fuel table support
+  byte veMapSelectionInj1Sec: 4;     //[PJSCv1.01]  |
+  byte veMapSelectionInj2Pri: 4;     //[PJSCv1.01]  |
+  byte veMapSelectionInj2Sec: 4;     //[PJSCv1.01]  |
+  byte veMapSelectionInj3Pri: 4;     //[PJSCv1.01]  |
+  byte veMapSelectionInj3Sec: 4;     //[PJSCv1.01]  |
+  byte veMapSelectionInj4Pri: 4;     //[PJSCv1.01]  |
+  byte veMapSelectionInj4Sec: 4;     //[PJSCv1.01]  |
+  byte veMapSelectionInj1_2Pri: 4;   //[PJSCv1.01]  |
+  byte veMapSelectionInj1_2Sec: 4;   //[PJSCv1.01]  |
+  byte veMapSelectionInj2_2Pri: 4;   //[PJSCv1.01]  |
+  byte veMapSelectionInj2_2Sec: 4;   //[PJSCv1.01]  |
+  byte veMapSelectionInj3_2Pri: 4;   //[PJSCv1.01]  |
+  byte veMapSelectionInj3_2Sec: 4;   //[PJSCv1.01]  |
+  byte veMapSelectionInj4_2Pri: 4;   //[PJSCv1.01]  V
+  byte veMapSelectionInj4_2Sec: 4;   //[PJSCv1.01] For x4 Fuel table support
 //[PJSC v1.01]  byte dutyFreqTst[4];               //[PJSC v1.01] For test mode
 //[PJSC v1.01]  byte dutyRatioTst[4];              // |
   byte dutyFreqTst[12];              //[PJSC v1.01] For test mode
@@ -700,11 +730,17 @@ struct config2 {
   byte muxout2Selection: 4;          // | MUX output2 selection
   byte muxout3Selection: 4;          // |[PJSC v1.01] MUX output3 selection
   byte muxout4Selection: 4;          // |[PJSC v1.01] MUX output4 selection
-  byte fuelAlgorithm2: 3;            //[PJSC v1.01] For Secondary Fuel Algorithm
+  byte fuelAlgorithm2: 3;            // |[PJSC v1.01] For Secondary Fuel Algorithm
   byte fuelAlgorithm3: 3;            // |
-  byte unused2_118: 2;               // |
+//[PJSC v1.03]  byte unused2_118: 2;               // |
+  byte swASE: 1;                     // |[PJSC v1.03]
+  byte exValveCalibrationMode: 1;    // |[PJSC v1.03] For capturing viecle speed
+//[PJSC v1.03]  byte unused2_118: 1;               // |[PJSC v1.03]
   byte table4Usage: 1;               // | For switching usage of 3rd table Ignition/Fuel
-  byte unused2_119: 7;               // |
+  byte useMAPasSync: 1;              // |[PJSC v1.03]
+  byte isolateNumTooth: 1;           // |[PJSC v1.03] For trigger wheels with different number of triggers and number of cylinders
+  byte triggerWheelSelectable: 1;    // |[PJSC v1.03]
+  byte unused2_119: 4;               // |
   byte inj1SquirtStartEnd: 1;        // |
   byte inj2SquirtStartEnd: 1;        // |
   byte inj3SquirtStartEnd: 1;        // V
@@ -713,7 +749,19 @@ struct config2 {
   byte afr_sensor_selection2: 1;     //[PJSC v1.02]
   byte afr_sensor_selection3: 1;     //[PJSC v1.02]
   byte afr_sensor_selection4: 1;     //[PJSC v1.02]
-  byte unused2_122[6];               //[PJSC v1.01]
+//[PJSC v1.03]  byte unused2_122[6];               //[PJSC v1.01]
+  byte squirtDeviceTypeCh1 : 1;       //[PJSC v1.03]
+  byte squirtDeviceTypeCh2 : 1;       // |
+  byte squirtDeviceTypeCh3 : 1;       // |
+  byte squirtDeviceTypeCh4 : 1;       // |
+  byte solenoidValveDirectionCh1 : 1; // |
+  byte solenoidValveDirectionCh2 : 1; // |
+  byte solenoidValveDirectionCh3 : 1; // |
+  byte solenoidValveDirectionCh4 : 1; // |
+  byte EGTvoltage1;                   // |
+  byte EGTvoltage2;                   // |
+  int8_t EGTtemperature1;             // V
+  uint16_t EGTtemperature2;           //[PJSC v1.03]
 
 #if defined(CORE_AVR)
   };
@@ -792,8 +840,18 @@ struct config4 {
   byte baroDenRates[9];              //[PJSC v1.01] For Barometric extend correnction
 //[PJSC v1.02]  byte unused2_82[39];
   byte crankingFilter : 1;           //[PJSC v1.02]
-  byte unused2_82 : 7;               //[PJSC v1.02]
-  byte unused2_83[38];               //[PJSC v1.02]
+  byte unused2_89 : 7;               //[PJSC v1.02]
+  byte numSparkPerRev;               //[PJSC v1.03] For misfire detection
+  byte misfireDetectThresh;          //[PJSC v1.03] For misfire detection
+  byte numSpeedPulsePerRev;          //[PJSC v1.03] For capturing viecle speed
+  uint16_t tireCircumference;        //[PJSC v1.03] For capturing viecle speed
+
+  int16_t dfcoTPSdotThresh;          //[PJSC v1.03] For TPSdot DFCO
+  byte dfcoTPSdotMulti;              //[PJSC v1.03] For TPSdot DFCO
+  byte dfcoTPSdotDuration;           //[PJSC v1.03] For TPSdot DFCO
+  byte dfcoTPSdotRPM;                //[PJSC v1.03] For TPSdot DFCO
+  byte dfcoTPSdotTPSThresh;          //[PJSC v1.03] For TPSdot DFCO
+  byte unused2_101[26];              //[PJSC v1.03] For TPSdot DFCO
 
 #if defined(CORE_AVR)
   };
@@ -1120,6 +1178,7 @@ byte pinLaunch;
 byte pinIgnBypass; //The pin used for an ignition bypass (Optional)
 byte pinFlex; //Pin with the flex sensor attached
 byte pinBaro; //Pin that an external barometric pressure sensor is attached to (If used)
+byte pinEGT;          //[PJSC v1.03] For Exhaust Gas Temperature Sensor input
 byte pinResetControl; // Output pin used control resetting the Arduino
 byte pinExtTrigger;   //[PJSC] External Trigger input pin
 byte pinExValve;      //[PJSC] Exhaust valve position input pin
@@ -1130,6 +1189,7 @@ byte pinMuxout2;      //[PJSC v1.01] For MUX output setting
 byte pinMuxout3;      //[PJSC v1.01] For MUX output setting
 byte pinMuxout4;      //[PJSC v1.01] For MUX output setting
 byte pinAnalogInput1; //[PJSC v1.02] For Analog input selection
+byte pinAnalogInput2; //[PJSC v1.03] For Analog input2 selection
 
 // global variables // from speeduino.ino
 extern struct statuses currentStatus; // from speeduino.ino
