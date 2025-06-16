@@ -1,12 +1,19 @@
 #ifndef INIT_H
 #define INIT_H
 
-void initialiseAll();
-void initialiseTriggers();
-void setPinMapping(byte);
-void initialiseExternalTrigger();      //[PJSC] For External Trigger Interruot
-void changeMapSelectSw();              //[PJSC v1.01] For MAP switch
-void initialiseCaptureDutyPulse();     //[PJSC] For capturing duty pulse
-void initialiseCaptureDutyPulse2();    //[PJSC] For capturing duty pulse
+void initialiseAll(void);
+void initialiseTriggers(void);
+void setPinMapping(byte boardID);
+void changeHalfToFullSync(void);
+void changeFullToHalfSync(void);
+//**************** [PJSC v1.10] *******************
+void initialiseExternalTrigger(void);
+void changeMapSelectSw(void);
+void initialiseCaptureDutyPulse(void);
+void initialiseCaptureDutyPulse2(void);
+//**************** [PJSC v1.10] *******************
+
+#define VSS_USES_RPM2() ((configPage2.vssMode > 1U) && (pinVSS == pinTrigger2) && !BIT_CHECK(decoderState, BIT_DECODER_HAS_SECONDARY)) // VSS is on the same pin as RPM2 and RPM2 is not used as part of the decoder
+#define FLEX_USES_RPM2() ((configPage2.flexEnabled > 0U) && (pinFlex == pinTrigger2) && !BIT_CHECK(decoderState, BIT_DECODER_HAS_SECONDARY)) // Same as above, but for Flex sensor
 
 #endif
