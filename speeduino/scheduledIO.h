@@ -188,7 +188,6 @@ void tachoOutputOff(void);
 #define closeInjector3_DIRECT() { *inj3_pin_port &= ~(inj3_pin_mask);  BIT_CLEAR(currentStatus.status1, BIT_STATUS1_INJ3); }
 #define openInjector4_DIRECT()  { *inj4_pin_port |= (inj4_pin_mask); BIT_SET(currentStatus.status1, BIT_STATUS1_INJ4); }
 #define closeInjector4_DIRECT() { *inj4_pin_port &= ~(inj4_pin_mask);  BIT_CLEAR(currentStatus.status1, BIT_STATUS1_INJ4); }
-#if INJ_CHANNELS >= 5              //[PJSC v1.10]
 #define openInjector5_DIRECT()  { *inj5_pin_port |= (inj5_pin_mask); }
 #define closeInjector5_DIRECT() { *inj5_pin_port &= ~(inj5_pin_mask); }
 #define openInjector6_DIRECT()  { *inj6_pin_port |= (inj6_pin_mask); }
@@ -197,7 +196,6 @@ void tachoOutputOff(void);
 #define closeInjector7_DIRECT() { *inj7_pin_port &= ~(inj7_pin_mask); }
 #define openInjector8_DIRECT()  { *inj8_pin_port |= (inj8_pin_mask); }
 #define closeInjector8_DIRECT() { *inj8_pin_port &= ~(inj8_pin_mask); }
-#endif                             //[PJSC v1.10]
 
 #define coil1Low_DIRECT()       (*ign1_pin_port &= ~(ign1_pin_mask))
 #define coil1High_DIRECT()      (*ign1_pin_port |= (ign1_pin_mask))
@@ -207,7 +205,6 @@ void tachoOutputOff(void);
 #define coil3High_DIRECT()      (*ign3_pin_port |= (ign3_pin_mask))
 #define coil4Low_DIRECT()       (*ign4_pin_port &= ~(ign4_pin_mask))
 #define coil4High_DIRECT()      (*ign4_pin_port |= (ign4_pin_mask))
-#if IGN_CHANNELS >= 5              //[PJSC v1.10]
 #define coil5Low_DIRECT()       (*ign5_pin_port &= ~(ign5_pin_mask))
 #define coil5High_DIRECT()      (*ign5_pin_port |= (ign5_pin_mask))
 #define coil6Low_DIRECT()       (*ign6_pin_port &= ~(ign6_pin_mask))
@@ -216,7 +213,6 @@ void tachoOutputOff(void);
 #define coil7High_DIRECT()      (*ign7_pin_port |= (ign7_pin_mask))
 #define coil8Low_DIRECT()       (*ign8_pin_port &= ~(ign8_pin_mask))
 #define coil8High_DIRECT()      (*ign8_pin_port |= (ign8_pin_mask))
-#endif                             //[PJSC v1.10]
 
 //Set the value of the coil pins to the coilHIGH or coilLOW state
 #define coil1Charging_DIRECT()      (configPage4.IgInv == GOING_HIGH ? coil1Low_DIRECT() : coil1High_DIRECT())
@@ -257,23 +253,19 @@ void tachoOutputOff(void);
 #define coil2Toggle_DIRECT() (*ign2_pin_port ^= ign2_pin_mask )
 #define coil3Toggle_DIRECT() (*ign3_pin_port ^= ign3_pin_mask )
 #define coil4Toggle_DIRECT() (*ign4_pin_port ^= ign4_pin_mask )
-#if IGN_CHANNELS >= 5              //[PJSC v1.10]
 #define coil5Toggle_DIRECT() (*ign5_pin_port ^= ign5_pin_mask )
 #define coil6Toggle_DIRECT() (*ign6_pin_port ^= ign6_pin_mask )
 #define coil7Toggle_DIRECT() (*ign7_pin_port ^= ign7_pin_mask )
 #define coil8Toggle_DIRECT() (*ign8_pin_port ^= ign8_pin_mask )
-#endif                             //[PJSC v1.10]
 
 #define injector1Toggle_DIRECT() (*inj1_pin_port ^= inj1_pin_mask )
 #define injector2Toggle_DIRECT() (*inj2_pin_port ^= inj2_pin_mask )
 #define injector3Toggle_DIRECT() (*inj3_pin_port ^= inj3_pin_mask )
 #define injector4Toggle_DIRECT() (*inj4_pin_port ^= inj4_pin_mask )
-#if INJ_CHANNELS >= 5              //[PJSC v1.10]
 #define injector5Toggle_DIRECT() (*inj5_pin_port ^= inj5_pin_mask )
 #define injector6Toggle_DIRECT() (*inj6_pin_port ^= inj6_pin_mask )
 #define injector7Toggle_DIRECT() (*inj7_pin_port ^= inj7_pin_mask )
 #define injector8Toggle_DIRECT() (*inj8_pin_port ^= inj8_pin_mask )
-#endif                             //[PJSC v1.10]
 
 void nullCallback(void);
 

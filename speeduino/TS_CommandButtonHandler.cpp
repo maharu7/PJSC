@@ -640,10 +640,12 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       break;
 
     case TS_CMD_PV_PWM_HIGH:   // cmd group is for PV control
-      PV_PWM_HIGH();
+      //PV_PWM_HIGH();
+      IGN5_TIMER_ENABLE();
       break;
 
     case TS_CMD_PV_PWM_LOW:    // cmd group is for PV control
+      IGN5_TIMER_DISABLE();
       PV_PWM_LOW();
       break;
 

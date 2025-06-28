@@ -136,11 +136,11 @@ bool PvHoldCheck(void);
 #define STARTER_ENABLE()        { STARTER_PIN_HIGH(); }
 #define STARTER_DISABLE()       { STARTER_PIN_LOW(); }
 
-#define PV_STOP()               { PV_DIS_HIGH(); PV_DIR_LOW();  PV_PWM_LOW();  }
-#define PV_FORWARD()            { PV_DIS_LOW();  PV_DIR_HIGH(); PV_PWM_HIGH(); }
-#define PV_BACKWARD()           { PV_DIS_LOW();  PV_DIR_LOW();  PV_PWM_HIGH(); }
-#define PV_FORWARD_BRAKE()      { PV_DIS_LOW();  PV_DIR_HIGH(); PV_PWM_LOW();  }
-#define PV_BACKWARD_BRAKE()     { PV_DIS_LOW();  PV_DIR_LOW();  PV_PWM_LOW();  }
+#define PV_STOP()               { PV_DIS_HIGH(); PV_DIR_LOW();  /*IGN5_TIMER_DISABLE();*/ PV_PWM_LOW();     }
+#define PV_FORWARD()            { PV_DIS_LOW();  PV_DIR_HIGH(); /*PV_PWM_HIGH(); IGN5_TIMER_ENABLE();*/ }
+#define PV_BACKWARD()           { PV_DIS_LOW();  PV_DIR_LOW();  /*PV_PWM_HIGH(); IGN5_TIMER_ENABLE();*/ }
+#define PV_FORWARD_BRAKE()      { PV_DIS_LOW();  PV_DIR_HIGH(); /*IGN5_TIMER_DISABLE();*/ PV_PWM_LOW();     }
+#define PV_BACKWARD_BRAKE()     { PV_DIS_LOW();  PV_DIR_LOW();  /*IGN5_TIMER_DISABLE();*/ PV_PWM_LOW();     }
 
 #define PV_HISTERYSIS           2
 #define PV_STAY_COUNT_MAX      45
@@ -189,6 +189,10 @@ extern int pv_stay_count;
 extern int pv_stuck_check_count;
 extern unsigned int pv_target_position_adc;
 extern unsigned int pv_pid_last_position_adc;
+extern unsigned int pv_pwm_max_count;
+extern volatile unsigned int pv_pwm_cur_value;
+extern long pv_pwm_target_value;
+extern volatile bool pv_pwm_state;
 //extern unsigned int pv_pid_current_position_adc;
 //******************** [PJSC v1.10] ********************
 

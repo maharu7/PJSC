@@ -216,7 +216,6 @@
 #define BIT_STATUS4_COMMS_COMPAT  6
 #define BIT_STATUS4_ALLOW_LEGACY_COMMS       7
 
-/* [PJSC v1.10] Omitto Ari conditoner controll
 #define BIT_AIRCON_REQUEST        0 //Indicates whether the A/C button is pressed
 #define BIT_AIRCON_COMPRESSOR     1 //Indicates whether the A/C compressor is running
 #define BIT_AIRCON_RPM_LOCKOUT    2 //Indicates the A/C is locked out due to the RPM being too high/low, or the post-high/post-low-RPM "stand-down" lockout period
@@ -225,7 +224,6 @@
 #define BIT_AIRCON_CLT_LOCKOUT    5 //Indicates the A/C is locked out either due to high coolant temp.
 #define BIT_AIRCON_FAN            6 //Indicates whether the A/C fan is running
 #define BIT_AIRCON_UNUSED8        7
-[PJSC v1.10] Omitto Ari conditoner controll */ 
 
 #ifndef UNIT_TEST 
 #define TOOTH_LOG_SIZE      127U
@@ -388,23 +386,19 @@ static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check all uses of TOOTH_LOG_SIZE");
 #define INJ2_CMD_BIT      1
 #define INJ3_CMD_BIT      2
 #define INJ4_CMD_BIT      3
-#if INJ_CHANNELS >= 5              //[PJSC v1.10]
 #define INJ5_CMD_BIT      4
 #define INJ6_CMD_BIT      5
 #define INJ7_CMD_BIT      6
 #define INJ8_CMD_BIT      7
-#endif                             //[PJSC v1.10]
 
 #define IGN1_CMD_BIT      0
 #define IGN2_CMD_BIT      1
 #define IGN3_CMD_BIT      2
 #define IGN4_CMD_BIT      3
-#if IGN_CHANNELS >= 5              //[PJSC v1.10]
 #define IGN5_CMD_BIT      4
 #define IGN6_CMD_BIT      5
 #define IGN7_CMD_BIT      6
 #define IGN8_CMD_BIT      7
-#endif                             //[PJSC v1.10]
 
 #define ENGINE_PROTECT_BIT_RPM  0
 #define ENGINE_PROTECT_BIT_MAP  1
@@ -587,7 +581,6 @@ extern volatile PORT_TYPE *inj3_pin_port;
 extern volatile PINMASK_TYPE inj3_pin_mask;
 extern volatile PORT_TYPE *inj4_pin_port;
 extern volatile PINMASK_TYPE inj4_pin_mask;
-#if INJ_CHANNELS >= 5              //[PJSC v1.10]
 extern volatile PORT_TYPE *inj5_pin_port;
 extern volatile PINMASK_TYPE inj5_pin_mask;
 extern volatile PORT_TYPE *inj6_pin_port;
@@ -596,7 +589,6 @@ extern volatile PORT_TYPE *inj7_pin_port;
 extern volatile PINMASK_TYPE inj7_pin_mask;
 extern volatile PORT_TYPE *inj8_pin_port;
 extern volatile PINMASK_TYPE inj8_pin_mask;
-#endif                             //[PJSC v1.10]
 
 extern volatile PORT_TYPE *ign1_pin_port;
 extern volatile PINMASK_TYPE ign1_pin_mask;
@@ -606,7 +598,6 @@ extern volatile PORT_TYPE *ign3_pin_port;
 extern volatile PINMASK_TYPE ign3_pin_mask;
 extern volatile PORT_TYPE *ign4_pin_port;
 extern volatile PINMASK_TYPE ign4_pin_mask;
-#if IGN_CHANNELS >= 5              //[PJSC v1.10]
 extern volatile PORT_TYPE *ign5_pin_port;
 extern volatile PINMASK_TYPE ign5_pin_mask;
 extern volatile PORT_TYPE *ign6_pin_port;
@@ -615,7 +606,6 @@ extern volatile PORT_TYPE *ign7_pin_port;
 extern volatile PINMASK_TYPE ign7_pin_mask;
 extern volatile PORT_TYPE *ign8_pin_port;
 extern volatile PINMASK_TYPE ign8_pin_mask;
-#endif                             //[PJSC v1.10]
 
 extern volatile PORT_TYPE *tach_pin_port;
 extern volatile PINMASK_TYPE tach_pin_mask;
@@ -680,7 +670,11 @@ extern volatile byte LOOP_TIMER;
 
 //These functions all do checks on a pin to determine if it is already in use by another (higher importance) function
 #define pinIsInjector(pin)  ( ((pin) == pinInjector1) || ((pin) == pinInjector2) || ((pin) == pinInjector3) || ((pin) == pinInjector4) || ((pin) == pinInjector5) || ((pin) == pinInjector6) || ((pin) == pinInjector7) || ((pin) == pinInjector8) )
+#if IGN_CHANNELS >= 5              //[PJSC v1.10]
 #define pinIsIgnition(pin)  ( ((pin) == pinCoil1) || ((pin) == pinCoil2) || ((pin) == pinCoil3) || ((pin) == pinCoil4) || ((pin) == pinCoil5) || ((pin) == pinCoil6) || ((pin) == pinCoil7) || ((pin) == pinCoil8) )
+#else                              //[PJSC v1.10]
+#define pinIsIgnition(pin)  ( ((pin) == pinCoil1) || ((pin) == pinCoil2) || ((pin) == pinCoil3) || ((pin) == pinCoil4) )    //[PJSC v1.10]
+#endif                             //[PJSC v1.10]
 //#define pinIsOutput(pin)    ( pinIsInjector((pin)) || pinIsIgnition((pin)) || ((pin) == pinFuelPump) || ((pin) == pinFan) || ((pin) == pinAirConComp) || ((pin) == pinAirConFan)|| ((pin) == pinVVT_1) || ((pin) == pinVVT_2) || ( ((pin) == pinBoost) && configPage6.boostEnabled) || ((pin) == pinIdle1) || ((pin) == pinIdle2) || ((pin) == pinTachOut) || ((pin) == pinStepperEnable) || ((pin) == pinStepperStep) )
 #define pinIsSensor(pin)    ( ((pin) == pinCLT) || ((pin) == pinIAT) || ((pin) == pinMAP) || ((pin) == pinTPS) || ((pin) == pinO2) || ((pin) == pinBat) || (((pin) == pinFlex) && (configPage2.flexEnabled != 0)) )
 //#define pinIsUsed(pin)      ( pinIsSensor((pin)) || pinIsOutput((pin)) || pinIsReserved((pin)) )
@@ -761,10 +755,11 @@ struct statuses {
   unsigned int PW2; ///< In uS
   unsigned int PW3; ///< In uS
   unsigned int PW4; ///< In uS
-  unsigned int PW5; ///< In uS
+  #if (INJ_CHANNELS >= 5)                      //[PJSC v1.10]
   unsigned int PW6; ///< In uS
   unsigned int PW7; ///< In uS
   unsigned int PW8; ///< In uS
+  #endif                                       //[PJSC v1.10]
   volatile byte runSecs; /**< Counter of seconds since cranking commenced (Maxes out at 255 to prevent overflow) */
   volatile byte secl; /**< Counter incrementing once per second. Will overflow after 255 and begin again. This is used by TunerStudio to maintain comms sync */
   volatile uint16_t loopsPerSecond; /**< A performance indicator showing the number of main loops that are being executed each second */ 
@@ -1773,6 +1768,8 @@ struct config15 {
   unsigned int PVPosMin;             //166
   unsigned int PVPosMax;             //168
   unsigned int PVPosTarget;          //170
+  byte PVPWMFreq;                    //172
+  byte PVPWMDuty;                    //173
 
   //byte gap1M;                        //171
   //byte gap1N;                        //172
@@ -1802,10 +1799,12 @@ extern byte pinCoil1; //Pin for coil 1
 extern byte pinCoil2; //Pin for coil 2
 extern byte pinCoil3; //Pin for coil 3
 extern byte pinCoil4; //Pin for coil 4
+#if IGN_CHANNELS >= 5              //[PJSC v1.10]
 extern byte pinCoil5; //Pin for coil 5
 extern byte pinCoil6; //Pin for coil 6
 extern byte pinCoil7; //Pin for coil 7
 extern byte pinCoil8; //Pin for coil 8
+#endif                             //[PJSC v1.10]
 extern byte ignitionOutputControl; //Specifies whether the coils are controlled directly (Via an IO pin) or using something like the MC33810
 extern byte pinTrigger; //The CAS pin
 extern byte pinTrigger2; //The Cam Sensor pin known as secondary input

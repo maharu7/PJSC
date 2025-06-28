@@ -94,14 +94,18 @@ uint16_t vvt_pwm_max_count; //Used for variable PWM frequency
 uint16_t boost_pwm_max_count; //Used for variable PWM frequency
 
 volatile uint8_t pv_flag = 0;                 //[PJSC v1.10] For PV control
+volatile bool pv_pwm_state;                   // |
 byte pv_operation;                            // |
 byte pv_operation_prev;                       // |
 byte pv_state;                                // |
 byte pv_state_prev;                           // |
 int pv_stay_count;                            // |
 int pv_stuck_check_count;                     // |
-unsigned int pv_target_position_adc;          // V
-unsigned int pv_pid_last_position_adc;        //[PJSC v1.10] For PV control
+unsigned int pv_target_position_adc;          // |
+unsigned int pv_pid_last_position_adc;        // |
+unsigned int pv_pwm_max_count;                // |
+volatile unsigned int pv_pwm_cur_value = 0;   // V
+long pv_pwm_target_value;                     //[PJSC v1.10] For PV control
 //unsigned int pv_pid_current_position_adc;     //[PJSC v1.10] For PV control
 
 //Old PID method. Retained in case the new one has issues
@@ -1417,6 +1421,20 @@ void initialisePvControl(void)
   pinMode(pinPvPWM, OUTPUT);
   pinMode(pinPvDIS, OUTPUT);
 
+  #if defined(CORE_AVR)
+    pv_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (16U * configPage15.PVPWMFreq * 2U));
+  #elif defined(CORE_TEENSY35)
+    pv_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (32U * configPage15.PVPWMFreq * 2U));
+  #elif defined(CORE_TEENSY41)
+    pv_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (2U * configPage15.PVPWMFreq * 2U));
+  #endif
+
+  pv_pwm_cur_value = 0;
+  //pv_pwm_target_value = 0;
+  pv_pwm_state = true;
+  //SET_COMPARE(IGN5_COMPARE, IGN5_COUNTER + (pv_pwm_max_count - pv_pwm_cur_value) );
+  IGN5_TIMER_DISABLE();
+
   PV_STOP();
   pv_stay_count = 0;
   pv_stuck_check_count = 0;
@@ -1482,6 +1500,7 @@ void PvControl(void)
 {
   if( configPage15.PVControlEnabled )
   {
+    pv_pwm_target_value = halfPercentage(configPage15.PVPWMDuty, pv_pwm_max_count);
     //pv_pid_current_position_adc = currentStatus.PVPositionADC;
 
     if( !BIT_CHECK(currentStatus.testOutputs, 1) )
@@ -1490,7 +1509,7 @@ void PvControl(void)
 
       if( pv_state == PV_STATE_ACTIVE )
       {
-        if(configPage6.vvtLoadSource == VVT_LOAD_TPS) { currentStatus.PVTargetPosition = get3DTableValue(&vvt2Table, currentStatus.TPS, currentStatus.RPM); }
+        if(configPage6.vvtLoadSource == VVT_LOAD_TPS) { currentStatus.PVTargetPosition = get3DTableValue(&vvt2Table, (currentStatus.TPS * 2), currentStatus.RPM); }
         else { currentStatus.PVTargetPosition = get3DTableValue(&vvt2Table, currentStatus.MAP, currentStatus.RPM); }
       
         currentStatus.PVTargetPosition = currentStatus.PVTargetPosition >> 1;
@@ -1504,15 +1523,15 @@ void PvControl(void)
     //if( pv_target_position_adc > (currentStatus.PVPositionADC + PV_HISTERYSIS) )
     if( pv_target_position_adc > (currentStatus.PVPositionADC + configPage15.PVhisterysis) )
     {
-      if( (pv_operation == PV_OPE_BACKWARD) )                  { pv_operation = PV_OPE_STOP;           }
-      else                                                                                      { pv_operation = PV_OPE_FORWARD;        }
+      if( (pv_operation == PV_OPE_BACKWARD) )                                                 { pv_operation = PV_OPE_STOP;           }
+      else                                                                                    { pv_operation = PV_OPE_FORWARD;        }
     }
     //else if( pv_target_position_adc < (pv_pid_current_position_adc - PV_HISTERYSIS) )
     //else if( pv_target_position_adc < (currentStatus.PVPositionADC - PV_HISTERYSIS) )
     else if( pv_target_position_adc < (currentStatus.PVPositionADC - configPage15.PVhisterysis) )
     {
-      if( (pv_operation == PV_OPE_FORWARD) )                   { pv_operation = PV_OPE_STOP;           }
-      else                                                                                      { pv_operation = PV_OPE_BACKWARD;       }
+      if( (pv_operation == PV_OPE_FORWARD) )                                                  { pv_operation = PV_OPE_STOP;           }
+      else                                                                                    { pv_operation = PV_OPE_BACKWARD;       }
     }
     else
     {
@@ -1553,21 +1572,27 @@ void PvControl(void)
     {
       case PV_OPE_STOP:
         PV_STOP();
+        IGN5_TIMER_DISABLE();
         break;
       case PV_OPE_FORWARD:
         PV_FORWARD();
+        IGN5_TIMER_ENABLE();
         break;
       case PV_OPE_BACKWARD:
         PV_BACKWARD();
+        IGN5_TIMER_ENABLE();
         break;
       case PV_OPE_FORWARD_BRAKE:
         PV_FORWARD_BRAKE();
+        IGN5_TIMER_DISABLE();
         break;
       case PV_OPE_BACKWARD_BRAKE:
         PV_BACKWARD_BRAKE();
+        IGN5_TIMER_DISABLE();
         break;
       default:
         PV_STOP();
+        IGN5_TIMER_DISABLE();
         break;
     }
 
@@ -1575,6 +1600,28 @@ void PvControl(void)
     pv_pid_last_position_adc = currentStatus.PVPositionADC;
   }
 }
+
+//******************** [PJSC v1.10] PV PWM interrrupt ********************
+#if defined(CORE_AVR) //AVR chips use the ISR for this
+ISR(TIMER4_COMPC_vect) //cppcheck-suppress misra-c2012-8.2
+#else
+void pvPWMInterrupt(void) //Most ARM chips can simply call a function
+#endif
+  {
+    if ( pv_pwm_state == true )
+    {
+      PV_PWM_LOW();
+      SET_COMPARE(IGN5_COMPARE, IGN5_COUNTER + (pv_pwm_max_count - pv_pwm_cur_value) );
+      pv_pwm_state = false;
+    }
+    else
+    {
+      PV_PWM_HIGH();
+      SET_COMPARE(IGN5_COMPARE, IGN5_COUNTER + pv_pwm_target_value);
+      pv_pwm_cur_value = pv_pwm_target_value;
+      pv_pwm_state = true;
+    }
+  }
 
 //******************** [PJSC v1.10] Oil Solenoid control function ********************
 void oilSolenoidControl(void)

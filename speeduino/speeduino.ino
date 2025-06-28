@@ -1889,10 +1889,12 @@ void calculateStaging(uint32_t pwLimit)
       { 
         if( configPage15.mapSeparationEnabled )
         {
+          #if INJ_CHANNELS >= 5
           currentStatus.PW5 = currentStatus.PW1;
           currentStatus.PW6 = currentStatus.PW2;
           currentStatus.PW7 = currentStatus.PW3;
           currentStatus.PW8 = currentStatus.PW4;
+          #endif
         }
         else
         {
@@ -1900,10 +1902,12 @@ void calculateStaging(uint32_t pwLimit)
           currentStatus.PW2 = currentStatus.PW1;
           currentStatus.PW3 = currentStatus.PW1;
           currentStatus.PW4 = currentStatus.PW1;
+          #if INJ_CHANNELS >= 5
           currentStatus.PW5 = currentStatus.PW1;
           currentStatus.PW6 = currentStatus.PW1;
           currentStatus.PW7 = currentStatus.PW1;
           currentStatus.PW8 = currentStatus.PW1;
+          #endif
 
           if( configPage2.indInjAng )
           {
@@ -1918,10 +1922,12 @@ void calculateStaging(uint32_t pwLimit)
       if (currentStatus.PW2 > pwLimit) { currentStatus.PW2 = pwLimit; }
       if (currentStatus.PW3 > pwLimit) { currentStatus.PW3 = pwLimit; }
       if (currentStatus.PW4 > pwLimit) { currentStatus.PW4 = pwLimit; }
+      #if INJ_CHANNELS >= 5
       if (currentStatus.PW5 > pwLimit) { currentStatus.PW5 = pwLimit; }
       if (currentStatus.PW6 > pwLimit) { currentStatus.PW6 = pwLimit; }
       if (currentStatus.PW7 > pwLimit) { currentStatus.PW7 = pwLimit; }
       if (currentStatus.PW8 > pwLimit) { currentStatus.PW8 = pwLimit; }
+      #endif
       //************************************************* [PJSC v1.10] *********************************************************************
 }
 

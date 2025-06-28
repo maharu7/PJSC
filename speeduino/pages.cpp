@@ -25,7 +25,7 @@
 
 // Page sizes as defined in the .ini file
 //[PJSC v1.10]constexpr const uint16_t PROGMEM ini_page_sizes[] = { 0, 128, 288, 288, 128, 288, 128, 240, 384, 192, 192, 288, 192, 128, 288, 256 };
-constexpr const uint16_t PROGMEM ini_page_sizes[] = { 0, 128, 288, 288, 128, 288, 128, 240, 384, 192, 192, 288, 192, 128, 288, 172 };   //[PJSC v1.10]
+constexpr const uint16_t PROGMEM ini_page_sizes[] = { 0, 128, 288, 288, 128, 288, 128, 240, 384, 192, 192, 288, 192, 128, 288, 174 };   //[PJSC v1.10]
 
 // ========================= Table size calculations =========================
 // Note that these should be computed at compile time, assuming the correct

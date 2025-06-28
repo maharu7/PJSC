@@ -172,10 +172,12 @@ byte pinCoil1; ///< Pin for coil 1
 byte pinCoil2; ///< Pin for coil 2
 byte pinCoil3; ///< Pin for coil 3
 byte pinCoil4; ///< Pin for coil 4
+#if IGN_CHANNELS >= 5              //[PJSC v1.10]
 byte pinCoil5; ///< Pin for coil 5
 byte pinCoil6; ///< Pin for coil 6
 byte pinCoil7; ///< Pin for coil 7
 byte pinCoil8; ///< Pin for coil 8
+#endif                             //[PJSC v1.10]
 byte ignitionOutputControl = OUTPUT_CONTROL_DIRECT; /**< Specifies whether the coils are controlled directly (Via an IO pin)
    or using something like the MC33810. 0 = Direct (OUTPUT_CONTROL_DIRECT), 10 = MC33810 (OUTPUT_CONTROL_MC33810) */
 byte pinTrigger;  ///< RPM1 (Typically CAS=crankshaft angle sensor) pin
@@ -312,6 +314,7 @@ bool pinIsOutput(byte pin)
     used = true;
   }
   //Ignition?
+  #if IGN_CHANNELS >= 5              //[PJSC v1.10]
   if ((pin == pinCoil1)
   || ((pin == pinCoil2) && (maxIgnOutputs > 1))
   || ((pin == pinCoil3) && (maxIgnOutputs > 2))
@@ -323,6 +326,17 @@ bool pinIsOutput(byte pin)
   {
     used = true;
   }
+  #else                              //[PJSC v1.10]
+  //****************** [PJSC v1.10] ******************
+  if ((pin == pinCoil1)
+  || ((pin == pinCoil2) && (maxIgnOutputs > 1))
+  || ((pin == pinCoil3) && (maxIgnOutputs > 2))
+  || ((pin == pinCoil4) && (maxIgnOutputs > 3)))
+  {
+    used = true;
+  }
+  //****************** [PJSC v1.10] ******************
+  #endif                             //[PJSC v1.10]
   //Functions?
   if ((pin == pinFuelPump)
   || ((pin == pinFan) && (configPage2.fanEnable == 1))
