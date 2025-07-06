@@ -1357,7 +1357,7 @@ void mux1Toggle(void)
   if (pjsc_pwm_state[CH_MUX1])
   {
     closeMux1();
-    SET_COMPARE(BOOST_TIMER_COMPARE, BOOST_TIMER_COUNTER + (pjsc_pwm_max_count[CH_MUX1] - pjsc_pwm_cur_value[CH_MUX1]) );
+    SET_COMPARE(BOOST_TIMER_COMPARE, BOOST_TIMER_COUNTER + (pjsc_pwm_max_count_mux1 - pjsc_pwm_cur_value[CH_MUX1]) );
     pjsc_pwm_state[CH_MUX1] = false;
 
     if( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE) )
@@ -1385,7 +1385,7 @@ void mux2Toggle(void)
   if (pjsc_pwm_state[CH_MUX2])
   {
     closeMux2();
-    SET_COMPARE(VVT_TIMER_COMPARE, VVT_TIMER_COUNTER + (pjsc_pwm_max_count[CH_MUX2] - pjsc_pwm_cur_value[CH_MUX2]) );
+    SET_COMPARE(VVT_TIMER_COMPARE, VVT_TIMER_COUNTER + (pjsc_pwm_max_count_mux2 - pjsc_pwm_cur_value[CH_MUX2]) );
     pjsc_pwm_state[CH_MUX2] = false;
 
     if( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE) )
@@ -1422,7 +1422,7 @@ void initialisePvControl(void)
   pinMode(pinPvDIS, OUTPUT);
 
   #if defined(CORE_AVR)
-    pv_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (16U * configPage15.PVPWMFreq * 2U));
+    pv_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (8U * configPage15.PVPWMFreq * 2U));
   #elif defined(CORE_TEENSY35)
     pv_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (32U * configPage15.PVPWMFreq * 2U));
   #elif defined(CORE_TEENSY41)
@@ -1430,9 +1430,7 @@ void initialisePvControl(void)
   #endif
 
   pv_pwm_cur_value = 0;
-  //pv_pwm_target_value = 0;
   pv_pwm_state = true;
-  //SET_COMPARE(IGN5_COMPARE, IGN5_COUNTER + (pv_pwm_max_count - pv_pwm_cur_value) );
   IGN5_TIMER_DISABLE();
 
   PV_STOP();
@@ -1511,8 +1509,6 @@ void PvControl(void)
       {
         if(configPage6.vvtLoadSource == VVT_LOAD_TPS) { currentStatus.PVTargetPosition = get3DTableValue(&vvt2Table, (currentStatus.TPS * 2), currentStatus.RPM); }
         else { currentStatus.PVTargetPosition = get3DTableValue(&vvt2Table, currentStatus.MAP, currentStatus.RPM); }
-      
-        currentStatus.PVTargetPosition = currentStatus.PVTargetPosition >> 1;
       }
 
       PvPercentToADC();

@@ -21,8 +21,15 @@ void muxHCToggle(void);
 void muxPulseOutputControl(byte muxCh);
 void muxTstControlPWM(byte muxCh);
 
-extern byte pjscDuty[13];
-extern unsigned int pjsc_pwm_max_count[13];
+extern byte pjscDuty[4];
+extern byte pjscDuty_inj;
+extern byte pjscDuty_spark;
+extern byte pjscDuty_mux;
+extern unsigned int pjsc_pwm_max_count[4];
+extern unsigned int pjsc_pwm_max_count_spark;
+extern unsigned int pjsc_pwm_max_count_mux1;
+extern unsigned int pjsc_pwm_max_count_mux2;
+extern unsigned int pjsc_pwm_max_count_muxHC;
 extern volatile unsigned int pjsc_pwm_cur_value[13];
 extern long pjsc_pwm_target_value[13];
 extern volatile bool pjsc_pwm_state[13];

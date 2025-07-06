@@ -571,6 +571,7 @@ extern struct table2D wmiAdvTable; //6 bin wmi correction table for timing advan
 extern struct table2D coolantProtectTable; //6 bin coolant temperature protection table for engine protection (2D)
 extern struct table2D fanPWMTable;
 extern struct table2D rollingCutTable;
+extern struct table2D acclAdvTable; //[PJSC v1.10] 5 bin TPS Acceleration Advance map (2D)
 
 //These are for the direct port manipulation of the injectors, coils and aux outputs
 extern volatile PORT_TYPE *inj1_pin_port;
@@ -670,11 +671,7 @@ extern volatile byte LOOP_TIMER;
 
 //These functions all do checks on a pin to determine if it is already in use by another (higher importance) function
 #define pinIsInjector(pin)  ( ((pin) == pinInjector1) || ((pin) == pinInjector2) || ((pin) == pinInjector3) || ((pin) == pinInjector4) || ((pin) == pinInjector5) || ((pin) == pinInjector6) || ((pin) == pinInjector7) || ((pin) == pinInjector8) )
-#if IGN_CHANNELS >= 5              //[PJSC v1.10]
 #define pinIsIgnition(pin)  ( ((pin) == pinCoil1) || ((pin) == pinCoil2) || ((pin) == pinCoil3) || ((pin) == pinCoil4) || ((pin) == pinCoil5) || ((pin) == pinCoil6) || ((pin) == pinCoil7) || ((pin) == pinCoil8) )
-#else                              //[PJSC v1.10]
-#define pinIsIgnition(pin)  ( ((pin) == pinCoil1) || ((pin) == pinCoil2) || ((pin) == pinCoil3) || ((pin) == pinCoil4) )    //[PJSC v1.10]
-#endif                             //[PJSC v1.10]
 //#define pinIsOutput(pin)    ( pinIsInjector((pin)) || pinIsIgnition((pin)) || ((pin) == pinFuelPump) || ((pin) == pinFan) || ((pin) == pinAirConComp) || ((pin) == pinAirConFan)|| ((pin) == pinVVT_1) || ((pin) == pinVVT_2) || ( ((pin) == pinBoost) && configPage6.boostEnabled) || ((pin) == pinIdle1) || ((pin) == pinIdle2) || ((pin) == pinTachOut) || ((pin) == pinStepperEnable) || ((pin) == pinStepperStep) )
 #define pinIsSensor(pin)    ( ((pin) == pinCLT) || ((pin) == pinIAT) || ((pin) == pinMAP) || ((pin) == pinTPS) || ((pin) == pinO2) || ((pin) == pinBat) || (((pin) == pinFlex) && (configPage2.flexEnabled != 0)) )
 //#define pinIsUsed(pin)      ( pinIsSensor((pin)) || pinIsOutput((pin)) || pinIsReserved((pin)) )
@@ -814,6 +811,7 @@ struct statuses {
   [PJSC v1.10] Omitto Ari conditoner controll */
 
 //****************** [PJSC v1.10] ******************
+  unsigned long AcclAdvEndTime;
   long MAP10;
   long baro10;
   int dutyFreq;
@@ -849,8 +847,10 @@ struct statuses {
   byte inj4VE;
   byte VE3;
   byte VE4;
+  byte accelAdvance;
   bool mapSelectSw;
   bool tpsDOTdfcoActive;
+  bool acclAdvActive;
 //****************** [PJSC v1.10] ******************
 };
 
@@ -1641,7 +1641,7 @@ struct config15 {
   byte pullupDigitalInput2: 1;
   byte pullupDigitalInput3: 1;
   byte pullupVSS: 1;
-  byte unused15_92: 1;
+  byte acclAdvEnabled: 1;
 
   byte exTrigModeSelect: 3;          //93
   byte externalTrigEdge: 1;
@@ -1692,8 +1692,18 @@ struct config15 {
   byte veMapSelectionInj3_2Sec: 4;
   byte veMapSelectionInj4_2Pri: 4;   //106
   byte veMapSelectionInj4_2Sec: 4;
-  byte dutyFreqTst[13];              //107
-  byte dutyRatioTst[13];             //120
+  byte dutyFreqTst_spark;            //107
+  byte dutyFreqTst_mux;              //108
+  byte dutyRatioTst_inj;             //109
+  byte dutyRatioTst_spark;           //110
+  byte dutyRatioTst_mux;             //111
+  byte acclAdvBins[5];               //112
+  byte acclAdvance[5];               //117
+  byte acclAdvTime;                  //122
+  byte acclAdvTaperMin;              //123
+  byte acclAdvTaperMax;              //124
+  byte acclAdvThresh;                //125
+  byte Unused15_126_132[7];          //126
 
   byte testop_inj: 2;                //133
   byte testop_coil: 2;
@@ -1799,12 +1809,10 @@ extern byte pinCoil1; //Pin for coil 1
 extern byte pinCoil2; //Pin for coil 2
 extern byte pinCoil3; //Pin for coil 3
 extern byte pinCoil4; //Pin for coil 4
-#if IGN_CHANNELS >= 5              //[PJSC v1.10]
 extern byte pinCoil5; //Pin for coil 5
 extern byte pinCoil6; //Pin for coil 6
 extern byte pinCoil7; //Pin for coil 7
 extern byte pinCoil8; //Pin for coil 8
-#endif                             //[PJSC v1.10]
 extern byte ignitionOutputControl; //Specifies whether the coils are controlled directly (Via an IO pin) or using something like the MC33810
 extern byte pinTrigger; //The CAS pin
 extern byte pinTrigger2; //The Cam Sensor pin known as secondary input

@@ -771,6 +771,8 @@ int8_t correctionsIgn(int8_t base_advance)
   advance = correctionFixedTiming(advance);
   advance = correctionCrankingFixedTiming(advance); //This overrides the regular fixed timing, must come last
 
+  advance = correctionAccelAdvance(advance);        //[PJSC v1.10] Acceleration Advance
+
   return advance;
 }
 /** Correct ignition timing to configured fixed value.
@@ -1179,4 +1181,70 @@ uint16_t correctionsDwell(uint16_t dwell)
   */
 
   return tempDwell;
+}
+
+/** [PJSC v1.10] Acceleration Advance
+ */
+int8_t correctionAccelAdvance(int8_t advance)
+{
+  int8_t advanceAcclAdjust = 0;
+  int16_t TPS_change = 0;
+
+  if( configPage15.acclAdvEnabled )
+  {
+    //Get the TPS rate change
+    TPS_change = (currentStatus.TPS - currentStatus.TPSlast);
+    //currentStatus.tpsDOT = ldiv(MICROS_PER_SEC, (TPS_time - TPSlast_time)).quot * TPS_change; //This is the % per second that the TPS has moved
+    currentStatus.tpsDOT = (TPS_READ_FREQUENCY * TPS_change) / 2; //This is the % per second that the TPS has moved, adjusted for the 0.5% resolution of the TPS
+
+    //First, check whether the accel. advance is already running
+    if( currentStatus.acclAdvActive == true )
+    {
+      //If it is currently running, check whether it should still be running or whether it's reached it's end time
+      if( micros_safe() >= currentStatus.AcclAdvEndTime )
+      {
+        currentStatus.accelAdvance = 0;
+        //Time to turn enrichment off
+        currentStatus.acclAdvActive = false;
+
+        //Reset the relevant DOT value to 0
+        currentStatus.tpsDOT = 0;
+      }
+
+      advanceAcclAdjust = currentStatus.accelAdvance;
+    }
+
+    if( currentStatus.acclAdvActive == false )
+    {
+      //Positive TPS rate of change is Acceleration.
+      if ( currentStatus.tpsDOT > configPage15.acclAdvThresh )
+      {
+        currentStatus.AcclAdvEndTime = micros_safe() + ((unsigned long)configPage15.acclAdvTime * 10000);
+        currentStatus.acclAdvActive = true;
+
+        advanceAcclAdjust = table2D_getValue(&acclAdvTable, currentStatus.tpsDOT / 10);
+
+        //Apply the RPM taper to the above
+        //The RPM settings are stored divided by 100:
+        uint16_t trueTaperMin = configPage15.acclAdvTaperMin * 100;
+        uint16_t trueTaperMax = configPage15.acclAdvTaperMax * 100;
+        if (currentStatus.RPM > trueTaperMin)
+        {
+          if(currentStatus.RPM > trueTaperMax) { advanceAcclAdjust = 0; }
+          else 
+          {
+            int16_t taperRange = trueTaperMax - trueTaperMin;
+            int16_t taperPercent = ((currentStatus.RPM - trueTaperMin) * 100UL) / taperRange; //The percentage of the way through the RPM taper range
+            advanceAcclAdjust = percentage( (100 - taperPercent), advanceAcclAdjust);         //Calculate the above percentage of the calculated advance.
+          }
+        }
+
+        currentStatus.accelAdvance = advanceAcclAdjust;
+      }
+    }
+
+    advance = advance + (advanceAcclAdjust / 10);
+  }
+
+  return advance;
 }

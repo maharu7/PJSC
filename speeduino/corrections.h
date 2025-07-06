@@ -41,6 +41,7 @@ int8_t correctionSoftLaunch(int8_t advance);
 int8_t correctionSoftFlatShift(int8_t advance);
 int8_t correctionKnock(int8_t advance);
 int8_t correctionDFCOignition(int8_t advance);
+int8_t correctionAccelAdvance(int8_t advance);   //[PJSC v1.10]
 
 uint16_t correctionsDwell(uint16_t dwell);
 

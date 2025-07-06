@@ -11,8 +11,15 @@ A full copy of the license may be found in the projects root directory
 #include "pwm.h"
 
 //******************** [PJSC v1.10] ********************
-byte pjscDuty[13];
-unsigned int pjsc_pwm_max_count[13];
+byte pjscDuty[4];
+byte pjscDuty_inj;
+byte pjscDuty_spark;
+byte pjscDuty_mux;
+unsigned int pjsc_pwm_max_count[4];
+unsigned int pjsc_pwm_max_count_spark;
+unsigned int pjsc_pwm_max_count_mux1;
+unsigned int pjsc_pwm_max_count_mux2;
+unsigned int pjsc_pwm_max_count_muxHC;
 volatile unsigned int pjsc_pwm_cur_value[13];
 long pjsc_pwm_target_value[13];
 volatile bool pjsc_pwm_state[13];
@@ -306,56 +313,69 @@ void ign4Toggle(void)
 //*************** Injector test mode contorol for PWM output ***************
 void hardWareTstControlPWM(byte injCh)
 {
-  pjsc_pwm_max_count[injCh] = 1000000L / (4 * configPage15.dutyFreqTst[injCh]);  //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
-  pjscDuty[injCh] = configPage15.dutyRatioTst[injCh];
-
   switch (injCh) {
     case CH_INJ1:
-      if(pjscDuty[injCh] == 0)         { FUEL1_TIMER_DISABLE(); closeInjector1(); }
-      else if (pjscDuty[injCh] >= 100) { FUEL1_TIMER_DISABLE(); openInjector1(); }
-      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty[injCh], pjsc_pwm_max_count[injCh]); FUEL1_TIMER_ENABLE(); }
+      pjsc_pwm_max_count[injCh] = 1000000L / (4 * configPage15.pjscFreq);  //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
+      pjscDuty_inj = configPage15.dutyRatioTst_inj;
+      if(pjscDuty_inj == 0)         { FUEL1_TIMER_DISABLE(); closeInjector1(); }
+      else if (pjscDuty_inj >= 100) { FUEL1_TIMER_DISABLE(); openInjector1(); }
+      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty_inj, pjsc_pwm_max_count[injCh]); FUEL1_TIMER_ENABLE(); }
       break;
     
     case CH_INJ2:
-      if(pjscDuty[injCh] == 0)         { FUEL1_TIMER_DISABLE(); closeInjector2(); }
-      else if (pjscDuty[injCh] >= 100) { FUEL1_TIMER_DISABLE(); openInjector2(); }
-      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty[injCh], pjsc_pwm_max_count[injCh]); FUEL2_TIMER_ENABLE(); }
+      pjsc_pwm_max_count[injCh] = 1000000L / (4 * configPage15.pjscFreq);  //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
+      pjscDuty_inj = configPage15.dutyRatioTst_inj;
+      if(pjscDuty_inj == 0)         { FUEL1_TIMER_DISABLE(); closeInjector2(); }
+      else if (pjscDuty_inj >= 100) { FUEL1_TIMER_DISABLE(); openInjector2(); }
+      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty_inj, pjsc_pwm_max_count[injCh]); FUEL2_TIMER_ENABLE(); }
       break;
       
     case CH_INJ3:
-      if(pjscDuty[injCh] == 0)         { FUEL1_TIMER_DISABLE(); closeInjector3(); }
-      else if (pjscDuty[injCh] >= 100) { FUEL1_TIMER_DISABLE(); openInjector3(); }
-      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty[injCh], pjsc_pwm_max_count[injCh]); FUEL3_TIMER_ENABLE(); }
+      pjsc_pwm_max_count[injCh] = 1000000L / (4 * configPage15.pjscFreq);  //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
+      pjscDuty_inj = configPage15.dutyRatioTst_inj;
+      if(pjscDuty_inj == 0)         { FUEL1_TIMER_DISABLE(); closeInjector3(); }
+      else if (pjscDuty_inj >= 100) { FUEL1_TIMER_DISABLE(); openInjector3(); }
+      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty_inj, pjsc_pwm_max_count[injCh]); FUEL3_TIMER_ENABLE(); }
       break;
       
     case CH_INJ4:
-      if(pjscDuty[injCh] == 0)         { FUEL1_TIMER_DISABLE(); closeInjector4(); }
-      else if (pjscDuty[injCh] >= 100) { FUEL1_TIMER_DISABLE(); openInjector4(); }
-      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty[injCh], pjsc_pwm_max_count[injCh]); FUEL4_TIMER_ENABLE(); }
+      pjsc_pwm_max_count[injCh] = 1000000L / (4 * configPage15.pjscFreq);  //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
+      pjscDuty_inj = configPage15.dutyRatioTst_inj;
+      if(pjscDuty_inj == 0)         { FUEL1_TIMER_DISABLE(); closeInjector4(); }
+      else if (pjscDuty_inj >= 100) { FUEL1_TIMER_DISABLE(); openInjector4(); }
+      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty_inj, pjsc_pwm_max_count[injCh]); FUEL4_TIMER_ENABLE(); }
       break;
       
     case CH_IGN1:
-      if(pjscDuty[injCh] == 0)         { IGN1_TIMER_DISABLE(); endCoil1Charge(); }
-      else if (pjscDuty[injCh] >= 100) { IGN1_TIMER_DISABLE(); beginCoil1Charge(); }
-      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty[injCh], pjsc_pwm_max_count[injCh]); IGN1_TIMER_ENABLE(); }
+      pjsc_pwm_max_count_spark = 1000000L / (4 * configPage15.dutyFreqTst_spark);  //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
+      pjscDuty_spark = configPage15.dutyRatioTst_spark;
+      if(pjscDuty_spark == 0)         { IGN1_TIMER_DISABLE(); endCoil1Charge(); }
+      else if (pjscDuty_spark >= 100) { IGN1_TIMER_DISABLE(); beginCoil1Charge(); }
+      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty_spark, pjsc_pwm_max_count_spark); IGN1_TIMER_ENABLE(); }
       break;
       
     case CH_IGN2:
-      if(pjscDuty[injCh] == 0)         { IGN2_TIMER_DISABLE(); endCoil2Charge(); }
-      else if (pjscDuty[injCh] >= 100) { IGN2_TIMER_DISABLE(); beginCoil2Charge(); }
-      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty[injCh], pjsc_pwm_max_count[injCh]); IGN2_TIMER_ENABLE(); }
+      pjsc_pwm_max_count_spark = 1000000L / (4 * configPage15.dutyFreqTst_spark);  //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
+      pjscDuty_spark = configPage15.dutyRatioTst_spark;
+      if(pjscDuty_spark == 0)         { IGN2_TIMER_DISABLE(); endCoil2Charge(); }
+      else if (pjscDuty_spark >= 100) { IGN2_TIMER_DISABLE(); beginCoil2Charge(); }
+      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty_spark, pjsc_pwm_max_count_spark); IGN2_TIMER_ENABLE(); }
       break;
      
     case CH_IGN3:
-      if(pjscDuty[injCh] == 0)         { IGN3_TIMER_DISABLE(); endCoil3Charge(); }
-      else if (pjscDuty[injCh] >= 100) { IGN3_TIMER_DISABLE(); beginCoil3Charge(); }
-      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty[injCh], pjsc_pwm_max_count[injCh]); IGN3_TIMER_ENABLE(); }
+      pjsc_pwm_max_count_spark = 1000000L / (4 * configPage15.dutyFreqTst_spark);  //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
+      pjscDuty_spark = configPage15.dutyRatioTst_spark;
+      if(pjscDuty_spark == 0)         { IGN3_TIMER_DISABLE(); endCoil3Charge(); }
+      else if (pjscDuty_spark >= 100) { IGN3_TIMER_DISABLE(); beginCoil3Charge(); }
+      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty_spark, pjsc_pwm_max_count_spark); IGN3_TIMER_ENABLE(); }
       break;
       
     case CH_IGN4:
-      if(pjscDuty[injCh] == 0)         { IGN4_TIMER_DISABLE(); endCoil4Charge(); }
-      else if (pjscDuty[injCh] >= 100) { IGN4_TIMER_DISABLE(); beginCoil4Charge(); }
-      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty[injCh], pjsc_pwm_max_count[injCh]); IGN4_TIMER_ENABLE(); }
+      pjsc_pwm_max_count_spark = 1000000L / (4 * configPage15.dutyFreqTst_spark);  //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
+      pjscDuty_spark = configPage15.dutyRatioTst_spark;
+      if(pjscDuty_spark == 0)         { IGN4_TIMER_DISABLE(); endCoil4Charge(); }
+      else if (pjscDuty_spark >= 100) { IGN4_TIMER_DISABLE(); beginCoil4Charge(); }
+      else { pjsc_pwm_target_value[injCh] = percentage(pjscDuty_spark, pjsc_pwm_max_count_spark); IGN4_TIMER_ENABLE(); }
       break;
       
     default:
@@ -486,7 +506,7 @@ void ignTstControlPulse(byte ignCh)
   }
   else
   {
-    pjsc_pwm_max_count[ignCh] = 1000000L * tmp_testint / 400000;           //Converts the pulse interval in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
+    pjsc_pwm_max_count_spark = 1000000L * tmp_testint / 400000;            //Converts the pulse interval in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
     pjsc_pwm_target_value[ignCh] = 1000000L * tmp_testpw / 400000;         //Converts the pulse width in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
 
     switch (ignCh) {
@@ -522,7 +542,7 @@ void muxHCToggle(void)
   if (pjsc_pwm_state[CH_MUXHC])
   {
     closeMuxHC();
-    SET_COMPARE(IDLE_COMPARE, IDLE_COUNTER + (pjsc_pwm_max_count[CH_MUXHC] - pjsc_pwm_cur_value[CH_MUXHC]) );
+    SET_COMPARE(IDLE_COMPARE, IDLE_COUNTER + (pjsc_pwm_max_count_muxHC - pjsc_pwm_cur_value[CH_MUXHC]) );
     pjsc_pwm_state[CH_MUXHC] = false;
 
     if( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE) )
@@ -547,36 +567,38 @@ void muxHCToggle(void)
 //*************** [PJSC v1.10] MUX test mode contorol for PWM output ***************
 void muxTstControlPWM(byte muxCh)
 {
-  pjsc_pwm_max_count[muxCh] = 1000000L / (16 * configPage15.dutyFreqTst[muxCh]);  //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
-  pjscDuty[muxCh] = configPage15.dutyRatioTst[muxCh];
+  pjscDuty_mux = configPage15.dutyRatioTst_mux;
 
   switch (muxCh) {
     case CH_MUX1:
-      if(pjscDuty[muxCh] == 0)         { DISABLE_BOOST_TIMER(); closeMux1(); }
-      else if (pjscDuty[muxCh] >= 100) { DISABLE_BOOST_TIMER(); openMux1(); }
-      else { pjsc_pwm_target_value[muxCh] = percentage(pjscDuty[muxCh], pjsc_pwm_max_count[muxCh]); ENABLE_BOOST_TIMER(); }
+      pjsc_pwm_max_count_mux1 = 1000000L / (16 * configPage15.dutyFreqTst_mux);  //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
+      if(pjscDuty_mux == 0)         { DISABLE_BOOST_TIMER(); closeMux1(); }
+      else if (pjscDuty_mux >= 100) { DISABLE_BOOST_TIMER(); openMux1(); }
+      else { pjsc_pwm_target_value[muxCh] = percentage(pjscDuty_mux, pjsc_pwm_max_count_mux1); ENABLE_BOOST_TIMER(); }
       break;
       
     case CH_MUX2:
-      if(pjscDuty[muxCh] == 0)         { DISABLE_VVT_TIMER(); closeMux2(); }
-      else if (pjscDuty[muxCh] >= 100) { DISABLE_VVT_TIMER(); openMux2(); }
-      else { pjsc_pwm_target_value[muxCh] = percentage(pjscDuty[muxCh], pjsc_pwm_max_count[muxCh]); ENABLE_VVT_TIMER(); }
+      pjsc_pwm_max_count_mux2 = 1000000L / (16 * configPage15.dutyFreqTst_mux);  //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
+      if(pjscDuty_mux == 0)         { DISABLE_VVT_TIMER(); closeMux2(); }
+      else if (pjscDuty_mux >= 100) { DISABLE_VVT_TIMER(); openMux2(); }
+      else { pjsc_pwm_target_value[muxCh] = percentage(pjscDuty_mux, pjsc_pwm_max_count_mux2); ENABLE_VVT_TIMER(); }
       break;
       
     case CH_MUX3:
-      if(pjscDuty[muxCh] == 0)         { closeMux3(); }
-      else if (pjscDuty[muxCh] >= 100) { openMux3(); }
+      if(pjscDuty_mux == 0)         { closeMux3(); }
+      else if (pjscDuty_mux >= 100) { openMux3(); }
       break;
       
     case CH_MUX4:
-      if(pjscDuty[muxCh] == 0)         { closeMux4(); }
-      else if (pjscDuty[muxCh] >= 100) { openMux4(); }
+      if(pjscDuty_mux == 0)         { closeMux4(); }
+      else if (pjscDuty_mux >= 100) { openMux4(); }
       break;
       
     case CH_MUXHC:
-      if(pjscDuty[muxCh] == 0)         { IDLE_TIMER_DISABLE(); closeMuxHC(); }
-      else if (pjscDuty[muxCh] >= 100) { IDLE_TIMER_DISABLE(); openMuxHC(); }
-      else { pjsc_pwm_target_value[muxCh] = percentage(pjscDuty[muxCh], pjsc_pwm_max_count[muxCh]); IDLE_TIMER_ENABLE(); }
+      pjsc_pwm_max_count_muxHC = 1000000L / (16 * configPage15.dutyFreqTst_mux);  //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
+      if(pjscDuty_mux == 0)         { IDLE_TIMER_DISABLE(); closeMuxHC(); }
+      else if (pjscDuty_mux >= 100) { IDLE_TIMER_DISABLE(); openMuxHC(); }
+      else { pjsc_pwm_target_value[muxCh] = percentage(pjscDuty_mux, pjsc_pwm_max_count_muxHC); IDLE_TIMER_ENABLE(); }
       break;
 
     default:
@@ -603,21 +625,23 @@ void muxPulseOutputControl(byte muxCh)
 
   if( BIT_CHECK(currentStatus.testOutputs, 1) && BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE) )  //MUX output off
   {
-    pjsc_pwm_max_count[muxCh] = 1000000L / (16 * 100000 / tmp_testint);           //Converts the pulse interval in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
     pjsc_pwm_target_value[muxCh] = 1000000L / (16 * 100000 / tmp_testpw);         //Converts the pulse width in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
 
     switch (muxCh) {
       case CH_MUX1:
+        pjsc_pwm_max_count_mux1 = 1000000L / (16 * 100000 / tmp_testint);           //Converts the pulse interval in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
         BIT_SET(currentStatus.muxTestModeActive, BIT_TEST_MUX1);
         ENABLE_BOOST_TIMER();
         if(allChOutput == false) { break; }
 
       case CH_MUX2:
+        pjsc_pwm_max_count_mux2 = 1000000L / (16 * 100000 / tmp_testint);           //Converts the pulse interval in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
         BIT_SET(currentStatus.muxTestModeActive, BIT_TEST_MUX2);
         ENABLE_VVT_TIMER();
         if(allChOutput == false) { break; }
 
       case CH_MUXHC:
+        pjsc_pwm_max_count_muxHC = 1000000L / (16 * 100000 / tmp_testint);           //Converts the pulse interval in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
         BIT_SET(currentStatus.muxTestModeActive, BIT_TEST_MUXHC);
         IDLE_TIMER_ENABLE();
         if(allChOutput == false) { break; }

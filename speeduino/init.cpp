@@ -65,6 +65,7 @@ void construct2dTables(void) {
   construct2dTable(fanPWMTable,               _countof(configPage9.PWMFanDuty),                 configPage9.PWMFanDuty,                 configPage6.fanPWMBins);
   construct2dTable(wmiAdvTable,               _countof(configPage10.wmiAdvAdj),                 configPage10.wmiAdvAdj,                 configPage10.wmiAdvBins);
   construct2dTable(rollingCutTable,           _countof(configPage15.rollingProtCutPercent),     configPage15.rollingProtCutPercent,     configPage15.rollingProtRPMDelta);
+  construct2dTable(acclAdvTable,              _countof(configPage15.acclAdvance),               configPage15.acclAdvance,               configPage15.acclAdvBins);  //[PJSC v1.10]
   construct2dTable(injectorAngleTable,        _countof(configPage2.injAng),                     configPage2.injAng,                     configPage2.injAngRPM);
   construct2dTable(flexBoostTable,            _countof(configPage10.flexBoostAdj),              configPage10.flexBoostAdj,              configPage10.flexBoostBins);
   construct2dTable(knockWindowStartTable,      _countof(configPage10.knock_window_angle),        configPage10.knock_window_angle, configPage10.knock_window_rpms);
@@ -347,9 +348,11 @@ void initialiseAll(void)
     
     noInterrupts();
     initialiseTriggers();
-    if(configPage15.exTrigModeSelect != 0) { initialiseExternalTrigger(); }                //[PJSC] For External Trigger
-    if(configPage15.dutyPulseCaptureEnabled != 0) { initialiseCaptureDutyPulse(); }        //[PJSC v1.03] For capturing duty pulse
+    if(configPage15.exTrigModeSelect != 0) { initialiseExternalTrigger(); }                  //[PJSC] For External Trigger
+    if(configPage15.dutyPulseCaptureEnabled != 0) { initialiseCaptureDutyPulse(); }          //[PJSC v1.03] For capturing duty pulse
     //if(configPage15.dutyPulseCaptureEnabled2 == true) { initialiseCaptureDutyPulse2(); }   //[PJSC] For capturing duty pulse
+    currentStatus.acclAdvActive = false;                                                     //[PJSC v1.10]
+    currentStatus.accelAdvance = 0;                                                          //[PJSC v1.10]
 
     //The secondary input can be used for VSS if nothing else requires it. Allows for the standard VR conditioner to be used for VSS. This MUST be run after the initialiseTriggers() function
     if( VSS_USES_RPM2() ) { attachInterrupt(digitalPinToInterrupt(pinVSS), vssPulse, RISING); } //Secondary trigger input can safely be used for VSS
@@ -1354,9 +1357,7 @@ void setPinMapping(byte boardID)
       pinCoil2 = 24; //Pin for coil 2
       pinCoil3 = 40; //Pin for coil 3
       pinCoil4 = 36; //Pin for coil 4
-      #if IGN_CHANNELS >= 5              //[PJSC v1.10]
       pinCoil5 = 34; //Pin for coil 5 PLACEHOLDER value for now
-      #endif                             //[PJSC v1.10]
       pinTrigger = 20; //The CAS pin
       pinTrigger2 = 21; //The Cam Sensor pin
       pinTrigger3 = 3; //The Cam sensor 2 pin
@@ -1390,9 +1391,7 @@ void setPinMapping(byte boardID)
       pinCoil2 = 24; //Pin for coil 2
       pinCoil3 = 40; //Pin for coil 3
       pinCoil4 = 36; //Pin for coil 4
-      #if IGN_CHANNELS >= 5              //[PJSC v1.10]
       pinCoil5 = 34; //Pin for coil 5 PLACEHOLDER value for now
-      #endif                             //[PJSC v1.10]
       pinTrigger = 19; //The CAS pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinTrigger3 = 3; //The Cam sensor 2 pin
@@ -1446,9 +1445,7 @@ void setPinMapping(byte boardID)
       pinCoil2 = 38; //Pin for coil 2
       pinCoil3 = 52; //Pin for coil 3
       pinCoil4 = 50; //Pin for coil 4
-      #if IGN_CHANNELS >= 5              //[PJSC v1.10]
       pinCoil5 = 34; //Pin for coil 5 PLACEHOLDER value for now
-      #endif                             //[PJSC v1.10]
       pinTrigger = 19; //The CAS pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinTrigger3 = 3; //The Cam sensor 2 pin
@@ -2106,9 +2103,7 @@ void setPinMapping(byte boardID)
       pinCoil2 = 22; //Pin for coil 2
       pinCoil3 = 2; //Pin for coil 3 - ONLY WITH DB2
       pinCoil4 = 3; //Pin for coil 4 - ONLY WITH DB2
-      #if IGN_CHANNELS >= 5              //[PJSC v1.10]
       pinCoil5 = 46; //Placeholder only - NOT USED
-      #endif                             //[PJSC v1.10]
       pinTrigger = 19; //The CAS pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinTrigger3 = 21; //The Cam sensor 2 pin
@@ -2239,9 +2234,7 @@ void setPinMapping(byte boardID)
       pinCoil2 = 29; //Pin for coil 2
       pinCoil3 = 28; //Pin for coil 3
       pinCoil4 = 27; //Pin for coil 4
-      #if IGN_CHANNELS >= 5              //[PJSC v1.10]
       pinCoil5 = 26; //Placeholder  for coil 5
-      #endif                             //[PJSC v1.10]
       pinTrigger = 19; //The CAS pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinTrigger3 = 21;// The Cam sensor 2 pin
@@ -2745,9 +2738,7 @@ void setPinMapping(byte boardID)
       pinCoil2 = 38;         //Pin for coil 2
       pinCoil3 = 41;         //Pin for coil 3
       pinCoil4 = 39;         //Pin for coil 4
-      #if IGN_CHANNELS >= 5              //[PJSC v1.10]
       pinCoil5 = 34;         //Pin for coil 5 PLACEHOLDER value for now
-      #endif                             //[PJSC v1.10]
       pinTrigger = 21;       //The CAS pin
       pinTrigger2 = 20;      //The Cam Sensor pin
       pinTPS = A10;          //TPS input pin
@@ -2794,9 +2785,7 @@ void setPinMapping(byte boardID)
       pinCoil2         = 38;     //Pin for coil 2
       pinCoil3         = 41;     //Pin for coil 3
       pinCoil4         = 39;     //Pin for coil 4
-      #if IGN_CHANNELS >= 5              //[PJSC v1.10]
       pinCoil5         = 34;     //Pin for coil 5 PLACEHOLDER value for now
-      #endif                             //[PJSC v1.10]
       pinTrigger       = 21;     //The CAS pin
       pinTrigger2      = 20;     //The Cam Sensor pin
       pinO2_2          = A0;     //O2 Sensor 2nd pin
@@ -2847,9 +2836,7 @@ void setPinMapping(byte boardID)
       pinCoil2         = 36;     //Pin for coil 2
       pinCoil3         = 46;     //Pin for coil 3
       pinCoil4         = 44;     //Pin for coil 4
-      #if IGN_CHANNELS >= 5              //[PJSC v1.10]
       pinCoil5         = 47;     //Pin for coil 5 PLACEHOLDER value for now
-      #endif                             //[PJSC v1.10]
       pinTrigger       =  3;     //The CAS pin
       pinTrigger2      = 18;     //The Cam Sensor pin
       pinTrigger3      = 19;     //The Cam sensor 2 pin
@@ -2906,9 +2893,7 @@ void setPinMapping(byte boardID)
       pinCoil2         = 39;     //Pin for coil 2
       pinCoil3         = 40;     //Pin for coil 3
       pinCoil4         = 42;     //Pin for coil 4
-      #if IGN_CHANNELS >= 5              //[PJSC v1.10]
       pinCoil5         = 27;     //Pin for coil 5 PLACEHOLDER value for now
-      #endif                             //[PJSC v1.10]
       pinTrigger       = 19;     //The CAS pin
       pinTrigger2      = 18;     //The Cam Sensor pin
       pinTrigger3      = 21;     //The Cam sensor 2 pin
@@ -2965,9 +2950,7 @@ void setPinMapping(byte boardID)
       pinCoil2         = 37;     //Pin for coil 2
       pinCoil3         = 38;     //Pin for coil 3
       pinCoil4         = 40;     //Pin for coil 4
-      #if IGN_CHANNELS >= 5              //[PJSC v1.10]
       pinCoil5         = 35;     //Pin for coil 5 PLACEHOLDER value for now
-      #endif                             //[PJSC v1.10]
       pinTrigger       = 19;     //The CAS pin
       pinTrigger2      = 18;     //The Cam Sensor pin
       pinTrigger3      = 21;     //The Cam sensor 2 pin
@@ -3027,9 +3010,7 @@ void setPinMapping(byte boardID)
       pinCoil2         = 36;     //Pin for coil 2
       pinCoil3         = 38;     //Pin for coil 3
       pinCoil4         = 40;     //Pin for coil 4
-      #if IGN_CHANNELS >= 5              //[PJSC v1.10]
       pinCoil5         = 35;     //Pin for coil 5 PLACEHOLDER value for now
-      #endif                             //[PJSC v1.10]
       pinTrigger       = 19;     //The CAS pin
       pinTrigger2      = 18;     //The Cam Sensor pin
       pinTrigger3      = 21;     //The Cam sensor 2 pin
@@ -3199,9 +3180,7 @@ void setPinMapping(byte boardID)
         pinCoil2 = 24; //Pin for coil 2
         pinCoil3 = 40; //Pin for coil 3
         pinCoil4 = 36; //Pin for coil 4
-        #if IGN_CHANNELS >= 5              //[PJSC v1.10]
         pinCoil5 = 34; //Pin for coil 5 PLACEHOLDER value for now
-        #endif                             //[PJSC v1.10]
         pinTrigger = 20; //The CAS pin
         pinTrigger2 = 21; //The Cam Sensor pin
         pinTPS = A2; //TPS input pin
@@ -3622,9 +3601,7 @@ void setPinMapping(byte boardID)
     pinMode(pinCoil2, OUTPUT);
     pinMode(pinCoil3, OUTPUT);
     pinMode(pinCoil4, OUTPUT);
-    #if (IGN_CHANNELS >= 5)
     pinMode(pinCoil5, OUTPUT);
-    #endif
     #if (IGN_CHANNELS >= 6)
     pinMode(pinCoil6, OUTPUT);
     #endif
