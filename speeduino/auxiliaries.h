@@ -86,8 +86,8 @@ bool PvHoldCheck(void);
 #define PV_PWM_HIGH()           ATOMIC() { *pvpwm_pin_port |= (pvpwm_pin_mask);  }          //[PJSC v1.10] For PV control
 #define PV_DIS_LOW()            ATOMIC() { *pvdis_pin_port &= ~(pvdis_pin_mask); }          //[PJSC v1.10] For PV control
 #define PV_DIS_HIGH()           ATOMIC() { *pvdis_pin_port |= (pvdis_pin_mask);  }          //[PJSC v1.10] For PV control
-#define STARTER_PIN_LOW()       *starter_pin_port &= ~(starter_pin_mask)                    //[PJSC v1.10]
-#define STARTER_PIN_HIGH()      *starter_pin_port |= (starter_pin_mask)                     //[PJSC v1.10]
+#define STARTER_PIN_LOW()       ATOMIC() { *starter_pin_port &= ~(starter_pin_mask); }      //[PJSC v1.10]
+#define STARTER_PIN_HIGH()      ATOMIC() { *starter_pin_port |= (starter_pin_mask);  }      //[PJSC v1.10]
 
 //Note the below macros cannot use ATOMIC() as they are called from within ternary operators. The ATOMIC is instead placed around the ternary call below
 #define FAN_PIN_LOW()           *fan_pin_port &= ~(fan_pin_mask)
@@ -143,10 +143,10 @@ bool PvHoldCheck(void);
 #define PV_BACKWARD_BRAKE()     { PV_DIS_LOW();  PV_DIR_LOW();  PV_PWM_LOW();  }
 
 #define PV_HISTERYSIS           2
-#define PV_STAY_COUNT_MAX      45
+#define PV_STAY_COUNT_MAX      60
 #define PV_STUCK_THRESHOLD    100
 
-#define PV_OPE_STOP            0
+#define PV_OPE_STOP             0
 #define PV_OPE_FORWARD          1
 #define PV_OPE_BACKWARD         2
 #define PV_OPE_FORWARD_BRAKE    3

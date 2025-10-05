@@ -358,12 +358,14 @@ static uint16_t timeToAngleIntervalTooth(uint32_t time)
       uint16_t tempTriggerToothAngle = triggerToothAngle; // triggerToothAngle is set by interrupts
       interrupts();
 
-      return (unsigned long)(time * (uint32_t)tempTriggerToothAngle) / toothTime;
+      //[PJSC v1.10 For Debug]return (unsigned long)(time * (uint32_t)tempTriggerToothAngle) / toothTime;
+      return (unsigned long)(((time * (uint32_t)tempTriggerToothAngle) / toothTime) + TIME_TO_ANGLE_OFFSET + configPage15.angleOffset);     //[PJSC v1.10 For Debug]
     }
     else { 
       interrupts();
       //Safety check. This can occur if the last tooth seen was outside the normal pattern etc
-      return timeToAngleDegPerMicroSec(time);
+      //[PJSC v1.10 For Debug]return timeToAngleDegPerMicroSec(time);
+      return (timeToAngleDegPerMicroSec(time) + TIME_TO_ANGLE_OFFSET + configPage15.angleOffset);    //[PJSC v1.10 For Debug]
     }
 }
 
@@ -6566,7 +6568,7 @@ void triggerSetup_RGV250(void)
   if( configPage15.isolateNumTooth ) { triggerActualTeeth = configPage4.triggerTeeth; }        //[PJSC v1.10] For trigger wheels with different number of triggers and number of cylinders
   if(triggerActualTeeth == 0) { triggerActualTeeth = 1; }
 
-  triggerToothAngle = 360 / triggerActualTeeth; //The number of degrees that passes from tooth to tooth
+  triggerToothAngle = 360U / triggerActualTeeth; //The number of degrees that passes from tooth to tooth
   triggerFilterTime = 60000000L / MAX_RPM;      // Minimum time required between teeth
   triggerFilterTime = triggerFilterTime / 2;    //Safety margin
   BIT_CLEAR(decoderState, BIT_DECODER_2ND_DERIV);
@@ -6575,8 +6577,8 @@ void triggerSetup_RGV250(void)
   toothCurrentCount = 0; //Default value
   BIT_SET(decoderState, BIT_DECODER_HAS_FIXED_CRANKING);
   BIT_SET(decoderState, BIT_DECODER_TOOTH_ANG_CORRECT);
-  if(configPage2.nCylinders <= 4) { MAX_STALL_TIME = (1851UL * triggerToothAngle); }//Minimum 90rpm. (1851uS is the time per degree at 90rpm). This uses 90rpm rather than 50rpm due to the potentially very high stall time on a 4 cylinder if we wait that long.
-  else { MAX_STALL_TIME = (3200UL * triggerToothAngle); } //Minimum 50rpm. (3200uS is the time per degree at 50rpm).
+  if(configPage2.nCylinders <= 4U) { MAX_STALL_TIME = ((MICROS_PER_DEG_1_RPM/90U) * triggerToothAngle); }//Minimum 90rpm. (1851uS is the time per degree at 90rpm). This uses 90rpm rather than 50rpm due to the potentially very high stall time on a 4 cylinder if we wait that long.
+  else { MAX_STALL_TIME = ((MICROS_PER_DEG_1_RPM/50U) * triggerToothAngle); } //Minimum 50rpm. (3200uS is the time per degree at 50rpm).
 
 }
 
@@ -6699,7 +6701,8 @@ uint16_t getRPM_RGV250(void)
   } 
   else { tempRPM = stdGetRPM(distributorSpeed); }
 
-  MAX_STALL_TIME = revolutionTime << 1; //Set the stall time to be twice the current RPM. This is a safe figure as there should be no single revolution where this changes more than this
+//[PJSC v1.10] For debug  MAX_STALL_TIME = revolutionTime << 1; //Set the stall time to be twice the current RPM. This is a safe figure as there should be no single revolution where this changes more than this
+  MAX_STALL_TIME = revolutionTime << 2; //[PJSC v1.10] For debug
   if(triggerActualTeeth == 1) { MAX_STALL_TIME = revolutionTime << 1; } //Special case for 1 cylinder engines that only get 1 pulse every 720 degrees
   if(MAX_STALL_TIME < 366667UL) { MAX_STALL_TIME = 366667UL; } //Check for 50rpm minimum
 

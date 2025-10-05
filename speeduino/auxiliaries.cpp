@@ -1445,8 +1445,17 @@ void initialisePvControl(void)
   {
     pv_operation = PV_OPE_STOP;
 
-    if( configPage15.PVPowerupTestEnabled ) { pv_state = PV_STATE_INIT_OPEN; }
-    else                                    { pv_state = PV_STATE_ACTIVE;    }
+    if( configPage15.PVPowerupTestEnabled )
+    {
+      pv_state = PV_STATE_INIT_OPEN;
+      BIT_CLEAR(pv_flag, BIT_PV_TEST_CLOSE_COMP);
+      BIT_CLEAR(pv_flag, BIT_PV_TEST_OPEN_COMP);
+      BIT_CLEAR(pv_flag, BIT_PV_TEST_COMP);
+    }
+    else
+    {
+      pv_state = PV_STATE_ACTIVE;
+    }
   }
 }
 
@@ -1461,7 +1470,9 @@ bool PvHoldCheck(void)
 {
   bool pv_stay_check_comp = false;
 
-  if( currentStatus.PVPosition == currentStatus.PVTargetPosition )
+  //if( currentStatus.PVPosition == currentStatus.PVTargetPosition )
+  if( (pv_target_position_adc <= (currentStatus.PVPositionADC + configPage15.PVhisterysis))
+   && (pv_target_position_adc >= (currentStatus.PVPositionADC - configPage15.PVhisterysis)) )
   {
     pv_stay_count++;
     if( pv_stay_count > (PV_STAY_COUNT_MAX * 10) )
@@ -1500,6 +1511,16 @@ void PvControl(void)
   {
     pv_pwm_target_value = halfPercentage(configPage15.PVPWMDuty, pv_pwm_max_count);
     //pv_pid_current_position_adc = currentStatus.PVPositionADC;
+    if( (pv_target_position_adc <= (currentStatus.PVPositionADC + configPage15.PVhisterysis * 3))
+     && (pv_target_position_adc >= (currentStatus.PVPositionADC - configPage15.PVhisterysis * 3)) )
+    {
+      pv_pwm_target_value = pv_pwm_target_value >> 1;
+      if( (pv_target_position_adc <= (currentStatus.PVPositionADC + configPage15.PVhisterysis * 2))
+       && (pv_target_position_adc >= (currentStatus.PVPositionADC - configPage15.PVhisterysis * 2)) )
+      {
+        pv_pwm_target_value = pv_pwm_target_value >> 1;
+      }
+    }
 
     if( !BIT_CHECK(currentStatus.testOutputs, 1) )
     {
@@ -1509,6 +1530,7 @@ void PvControl(void)
       {
         if(configPage6.vvtLoadSource == VVT_LOAD_TPS) { currentStatus.PVTargetPosition = get3DTableValue(&vvt2Table, (currentStatus.TPS * 2), currentStatus.RPM); }
         else { currentStatus.PVTargetPosition = get3DTableValue(&vvt2Table, currentStatus.MAP, currentStatus.RPM); }
+        currentStatus.PVTargetPosition = currentStatus.PVTargetPosition >> 1;
       }
 
       PvPercentToADC();
@@ -1531,10 +1553,10 @@ void PvControl(void)
     }
     else
     {
-      //if( (pv_operation == PV_OPE_FORWARD) || (pv_operation == PV_OPE_FORWARD_BRAKE) )        { pv_operation = PV_OPE_FORWARD_BRAKE;  }
-      //else if( (pv_operation == PV_OPE_BACKWARD) || (pv_operation == PV_OPE_BACKWARD_BRAKE) ) { pv_operation = PV_OPE_BACKWARD_BRAKE; }
-      //else                                                                                    { pv_operation = PV_OPE_STOP;           }
-                                                                                                { pv_operation = PV_OPE_STOP;           }
+      if( (pv_operation == PV_OPE_FORWARD) || (pv_operation == PV_OPE_FORWARD_BRAKE) )        { pv_operation = PV_OPE_FORWARD_BRAKE;  }
+      else if( (pv_operation == PV_OPE_BACKWARD) || (pv_operation == PV_OPE_BACKWARD_BRAKE) ) { pv_operation = PV_OPE_BACKWARD_BRAKE; }
+      else                                                                                    { pv_operation = PV_OPE_STOP;           }
+      //                                                                                          { pv_operation = PV_OPE_STOP;           }
     }
 
     /* Stuck check */
@@ -1671,12 +1693,6 @@ void initialiseStarter(void)
 
 void starterControl(void)
 {
-  if (BIT_CHECK(currentStatus.engine, BIT_ENGINE_RUN))
-  {
-    STARTER_DISABLE();
-  }
-  else if( !BIT_CHECK(currentStatus.engine, BIT_ENGINE_RUN) )
-  {
-    STARTER_ENABLE();
-  }
+  if (BIT_CHECK(currentStatus.engine, BIT_ENGINE_RUN)) { STARTER_DISABLE(); }
+  else                                                 { STARTER_ENABLE();  }
 }

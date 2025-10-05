@@ -353,7 +353,6 @@ void initialiseAll(void)
     //if(configPage15.dutyPulseCaptureEnabled2 == true) { initialiseCaptureDutyPulse2(); }   //[PJSC] For capturing duty pulse
     currentStatus.acclAdvActive = false;                                                     //[PJSC v1.10]
     currentStatus.accelAdvance = 0;                                                          //[PJSC v1.10]
-
     //The secondary input can be used for VSS if nothing else requires it. Allows for the standard VR conditioner to be used for VSS. This MUST be run after the initialiseTriggers() function
     if( VSS_USES_RPM2() ) { attachInterrupt(digitalPinToInterrupt(pinVSS), vssPulse, RISING); } //Secondary trigger input can safely be used for VSS
     if( FLEX_USES_RPM2() ) { attachInterrupt(digitalPinToInterrupt(pinFlex), flexPulse, CHANGE); } //Secondary trigger input can safely be used for Flex sensor
@@ -3297,6 +3296,10 @@ void setPinMapping(byte boardID)
         pinVVT_1 = pinMuxout1;
         break;
 
+      case MUXOUT_STARTER:
+        pinStarter = pinMuxout1;
+        break;
+
       default:
         break;
     }
@@ -3345,6 +3348,10 @@ void setPinMapping(byte boardID)
       case MUXOUT_OILSOLENOID:
         ;pinOilSolenoid = pinMuxout2;
         pinVVT_1 = pinMuxout2;
+        break;
+
+      case MUXOUT_STARTER:
+        pinStarter = pinMuxout2;
         break;
 
       default:
@@ -3400,6 +3407,10 @@ void setPinMapping(byte boardID)
         pinVVT_1 = pinMuxout3;
         break;
 
+      case MUXOUT_STARTER:
+        pinStarter = pinMuxout3;
+        break;
+
       default:
         break;
     }
@@ -3448,6 +3459,10 @@ void setPinMapping(byte boardID)
       case MUXOUT_OILSOLENOID:
         ;pinOilSolenoid = pinMuxout4;
         pinVVT_1 = pinMuxout4;
+        break;
+
+      case MUXOUT_STARTER:
+        pinStarter = pinMuxout4;
         break;
 
       default:

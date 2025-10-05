@@ -40,10 +40,25 @@ static inline uint32_t calculateInjectorTimeout(const FuelSchedule &schedule, in
 
 static inline void calculateIgnitionAngle(const uint16_t dwellAngle, const uint16_t channelIgnDegrees, int8_t advance, int *pEndAngle, int *pStartAngle)
 {
-  *pEndAngle = (int16_t)(channelIgnDegrees==0U ? (uint16_t)CRANK_ANGLE_MAX_IGN : channelIgnDegrees) - (int16_t)advance;
-  if(*pEndAngle > CRANK_ANGLE_MAX_IGN) {*pEndAngle -= CRANK_ANGLE_MAX_IGN;}
-  *pStartAngle = *pEndAngle - dwellAngle;
-  if(*pStartAngle < 0) {*pStartAngle += CRANK_ANGLE_MAX_IGN;}
+  //******************** [PJSC v1.10] ********************
+  if( configPage15.fixedSparkDuration )
+  {
+    uint16_t sparkDur_uS = (configPage4.sparkDur * 100); //Spark duration is in mS*10. Multiple it by 100 to get spark duration in uS
+    *pStartAngle = (int16_t)(channelIgnDegrees==0U ? (uint16_t)CRANK_ANGLE_MAX_IGN : channelIgnDegrees) - (int16_t)advance;
+    if(*pStartAngle > CRANK_ANGLE_MAX_IGN) {*pStartAngle -= CRANK_ANGLE_MAX_IGN;}
+    *pEndAngle = *pStartAngle + timeToAngleDegPerMicroSec(sparkDur_uS);
+    if(*pEndAngle > CRANK_ANGLE_MAX_IGN) {*pEndAngle -= CRANK_ANGLE_MAX_IGN;}
+
+    currentStatus.dwell = sparkDur_uS;
+  }
+  else
+  {
+  //******************** [PJSC v1.10] ********************
+    *pEndAngle = (int16_t)(channelIgnDegrees==0U ? (uint16_t)CRANK_ANGLE_MAX_IGN : channelIgnDegrees) - (int16_t)advance;
+    if(*pEndAngle > CRANK_ANGLE_MAX_IGN) {*pEndAngle -= CRANK_ANGLE_MAX_IGN;}
+    *pStartAngle = *pEndAngle - dwellAngle;
+    if(*pStartAngle < 0) {*pStartAngle += CRANK_ANGLE_MAX_IGN;}
+  }//[PJSC v1.10]
 }
 
 static inline void calculateIgnitionTrailingRotary(uint16_t dwellAngle, int rotarySplitDegrees, int leadIgnitionAngle, int *pEndAngle, int *pStartAngle)
@@ -70,7 +85,8 @@ static inline uint32_t _calculateIgnitionTimeout(const IgnitionSchedule &schedul
     }
   }
 
-  return angleToTimeMicroSecPerDegree(delta);
+//[PJSC v1.10]  return angleToTimeMicroSecPerDegree(delta);
+	return (angleToTimeMicroSecPerDegree(delta) - SPARK_LATENCY_CONST + configPage15.sparkLatency);    //[PJSC v1.10] For adjust ignition timing
 }
 
 static inline uint16_t _adjustToIgnChannel(int angle, int channelInjDegrees) 

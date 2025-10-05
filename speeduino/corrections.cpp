@@ -1154,22 +1154,63 @@ uint16_t correctionsDwell(uint16_t dwell)
   }
 
   //******************** [PJSC v1.10] ********************
-  if( ( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) || (configPage4.sparkMode == IGN_MODE_SINGLE) ) && (configPage2.strokes == FOUR_STROKE) && (CRANK_ANGLE_MAX_IGN == 720) )
-  {
-    if( dwellPerRevolution > (revolutionTime * 2) )
+//  if( configPage15.fixedSparkDuration )
+//  {
+//    uint16_t adjustedSparkDur = sparkDur_uS * pulsesPerRevolution;
+//    if( currentStatus.RPM < (5000 - (sparkDur_uS * 5)) ) { adjustedSparkDur = adjustedSparkDur * (((5000 - currentStatus.RPM) >> 7) + 1); }
+//    tempDwell = (revolutionTime / pulsesPerRevolution) - adjustedSparkDur;
+//  }
+//  else
+//  {
+    if( ( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) || (configPage4.sparkMode == IGN_MODE_SINGLE) ) && (configPage2.strokes == FOUR_STROKE) && (CRANK_ANGLE_MAX_IGN == 720) )
     {
-      //Possibly need some method of reducing spark duration here as well, but this is a start
-      tempDwell = (2 * revolutionTime / pulsesPerRevolution) - (configPage4.sparkDur * 100);
+      if( dwellPerRevolution > (revolutionTime * 2) )
+      {
+        //Possibly need some method of reducing spark duration here as well, but this is a start
+        tempDwell = (2 * revolutionTime / pulsesPerRevolution) - (configPage4.sparkDur * 100);
+      }
     }
+    else
+    {
+      if(dwellPerRevolution > revolutionTime)
+      {
+        //Possibly need some method of reducing spark duration here as well, but this is a start
+        tempDwell = (revolutionTime / pulsesPerRevolution) - (configPage4.sparkDur * 100);
+      }
+    }
+//  }
+  //******************** [PJSC v1.10] ********************
+
+  //******************** [PJSC v1.10] ********************
+  /*[PJSC v1.10]
+  uint16_t adjustedSparkDur = udiv_32_16(sparkDur_uS * revolutionTime, dwellPerRevolution);
+  if( configPage15.fixedSparkDuration )
+  {
+    adjustedSparkDur = sparkDur_uS * pulsesPerRevolution;
+    if( currentStatus.RPM < (5000 - (sparkDur_uS * 5)) ) { adjustedSparkDur = adjustedSparkDur * (((5000 - currentStatus.RPM) >> 6) + 1); }
+
+    tempDwell = udiv_32_16(revolutionTime, (uint16_t)pulsesPerRevolution) - adjustedSparkDur;
   }
   else
   {
-    if(dwellPerRevolution > revolutionTime)
+    if( ( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) || (configPage4.sparkMode == IGN_MODE_SINGLE) ) && (configPage2.strokes == FOUR_STROKE) && (CRANK_ANGLE_MAX_IGN == 720) )
     {
-      //Possibly need some method of reducing spark duration here as well, but this is a start
-      tempDwell = (revolutionTime / pulsesPerRevolution) - (configPage4.sparkDur * 100);
+      if( dwellPerRevolution > (revolutionTime * 2) )
+      {
+        //Possibly need some method of reducing spark duration here as well, but this is a start
+        tempDwell = udiv_32_16((revolutionTime * 2), (uint16_t)pulsesPerRevolution) - adjustedSparkDur;
+      }
+    }
+    else
+    {
+      if(dwellPerRevolution > revolutionTime)
+      {
+        //Possibly need some method of reducing spark duration here as well, but this is a start
+        tempDwell = udiv_32_16(revolutionTime, (uint16_t)pulsesPerRevolution) - adjustedSparkDur;
+      }
     }
   }
+  */
   //******************** [PJSC v1.10] ********************
   /*[PJSC v1.10]
   if(dwellPerRevolution > revolutionTime)

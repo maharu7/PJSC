@@ -351,6 +351,7 @@ static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check all uses of TOOTH_LOG_SIZE");
 #define SPARK2_CONDITION_TPS 2
 #define SPARK2_CONDITION_ETH 3
 #define SPARK2_CONDITION_GEAR 4    //[PJSC v1.10]
+#define SPARK2_CONDITION_TPSDOT 5  //[PJSC v1.10]
 
 #define RESET_CONTROL_DISABLED             0U
 #define RESET_CONTROL_PREVENT_WHEN_RUNNING 1U
@@ -513,6 +514,9 @@ This is so we can use an unsigned byte (0-255) to represent temperature ranges f
 
 #define ECU_MODE_FULLCONTROL      0
 #define ECU_MODE_INJCONTROL       1
+
+#define TIME_TO_ANGLE_OFFSET      3
+#define SPARK_LATENCY_CONST       100
 //****************** [PJSC v1.10] ******************
 
 extern const char TSfirmwareVersion[] PROGMEM;
@@ -1641,7 +1645,7 @@ struct config15 {
   byte pullupDigitalInput2: 1;
   byte pullupDigitalInput3: 1;
   byte pullupVSS: 1;
-  byte acclAdvEnabled: 1;
+  byte unused15_92: 1;
 
   byte exTrigModeSelect: 3;          //93
   byte externalTrigEdge: 1;
@@ -1703,31 +1707,33 @@ struct config15 {
   byte acclAdvTaperMin;              //123
   byte acclAdvTaperMax;              //124
   byte acclAdvThresh;                //125
-  byte Unused15_126_132[7];          //126
+  byte acclAdvEnabled: 1;            //126
+  byte fixedSparkDuration: 1;
+  byte unused15_126: 6;
 
-  byte testop_inj: 2;                //133
+  byte testop_inj: 2;                //127
   byte testop_coil: 2;
   byte testsel_inj: 2;
   byte testsel_coil: 2;
 
-  uint16_t testint;                  //134
-  uint16_t testpw;                   //136
-  uint16_t testinjcnt;               //138
+  uint16_t testint;                  //128
+  uint16_t testpw;                   //130
+  uint16_t testinjcnt;               //132
 
-  byte muxout1Selection: 4;          //140
+  byte muxout1Selection: 4;          //134
   byte muxout2Selection: 4;
-  byte muxout3Selection: 4;          //141
+  byte muxout3Selection: 4;          //135
   byte muxout4Selection: 4;
-  byte muxoutHCSelection: 4;         //142
+  byte muxoutHCSelection: 4;         //136
   byte testop_mux: 2;
   byte testsel_mux: 2;
 
-  byte testop_fp: 1;                 //143
+  byte testop_fp: 1;                 //137
   byte defaultMAPPinUse: 1;
   byte mapPin: 4;
   byte misfireDetectionFilter: 2;
 
-  byte inj1SquirtStartEnd: 1;        //144
+  byte inj1SquirtStartEnd: 1;        //138
   byte inj2SquirtStartEnd: 1;
   byte inj3SquirtStartEnd: 1;
   byte inj4SquirtStartEnd: 1;
@@ -1736,7 +1742,7 @@ struct config15 {
   byte afr_sensor_selection3: 1;
   byte afr_sensor_selection4: 1;
 
-  byte squirtDeviceTypeCh1: 1;       //145
+  byte squirtDeviceTypeCh1: 1;       //139
   byte squirtDeviceTypeCh2: 1;
   byte squirtDeviceTypeCh3: 1;
   byte squirtDeviceTypeCh4: 1;
@@ -1745,49 +1751,51 @@ struct config15 {
   byte solenoidValveDirectionCh3: 1;
   byte solenoidValveDirectionCh4: 1;
 
-  byte EGTvoltage1;                  //146
-  byte EGTvoltage2;
-  int8_t EGTtemperature1;
-  uint16_t EGTtemperature2;          //149
+  byte EGTvoltage1;                  //140
+  byte EGTvoltage2;                  //141
+  int8_t EGTtemperature1;            //142
+  uint16_t EGTtemperature2;          //143
 
-  byte numSparkPerRev;               //151
-  byte numSpeedPulsePerRev;          //152
+  byte numSparkPerRev;               //145
+  byte numSpeedPulsePerRev;          //146
 
-  int16_t dfcoTPSdotThresh;          //153
-  byte dfcoTPSdotMulti;              //155
-  byte dfcoTPSdotDuration;           //156
-  byte dfcoTPSdotRPM;                //157
-  byte dfcoTPSdotTPSThresh;          //158
+  int16_t dfcoTPSdotThresh;          //147
+  byte dfcoTPSdotMulti;              //149
+  byte dfcoTPSdotDuration;           //150
+  byte dfcoTPSdotRPM;                //151
+  byte dfcoTPSdotTPSThresh;          //152
 
-  byte injOpen2;                     //159
-  byte injOpen3;                     //160
-  byte injOpen4;                     //161
+  byte injOpen2;                     //153
+  byte injOpen3;                     //154
+  byte injOpen4;                     //155
 
-  int8_t pickup_advance1;            //162 VR1 Pickup angle position offset for 2 pickup input decoder
-  int8_t pickup_advance2;            //163 VR2 Pickup angle position offset for 2 pickup input decoder
+  int8_t pickup_advance1;            //156 VR1 Pickup angle position offset for 2 pickup input decoder
+  int8_t pickup_advance2;            //157 VR2 Pickup angle position offset for 2 pickup input decoder
 
-  byte measureIgnCh: 3;              //164
+  byte measureIgnCh: 3;              //158
   byte measureIgnCh2: 3;
   byte dutyPulseOnLevel: 1;
   byte dutyPulseOnLevel2: 1;
 
-  byte dutyPulseCaptureEnabled: 2;   //165
+  byte dutyPulseCaptureEnabled: 2;   //159
   byte dutyPulseCaptureEnabled2: 2;
   byte PVhisterysis: 4;
 
-  unsigned int PVPosMin;             //166
-  unsigned int PVPosMax;             //168
-  unsigned int PVPosTarget;          //170
-  byte PVPWMFreq;                    //172
-  byte PVPWMDuty;                    //173
+  unsigned int PVPosMin;             //160
+  unsigned int PVPosMax;             //162
+  unsigned int PVPosTarget;          //164
+  byte PVPWMFreq;                    //166
+  byte PVPWMDuty;                    //167
+  int8_t sparkLatency;               //168  [PJSC v1.10] For adjust ignition timing
+  int8_t angleOffset;                //169  [PJSC v1.10] For adjust ignition timing
 
-  //byte gap1M;                        //171
-  //byte gap1N;                        //172
-  //byte gap2M;                        //173
-  //byte gap2N;                        //174
-  //byte gap3M;                        //175
-  //byte gap3N;                        //176
-  //byte Unused15_187[5];              //177
+  //byte gap1M;                        //168
+  //byte gap1N;                        //169
+  //byte gap2M;                        //170
+  //byte gap2N;                        //171
+  //byte gap3M;                        //172
+  //byte gap3N;                        //173
+  //byte Unused15_187[5];              //174
 //****************************** [PJSC v1.10] ******************************
 
 #if defined(CORE_AVR)
