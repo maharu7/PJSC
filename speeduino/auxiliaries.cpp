@@ -95,6 +95,7 @@ uint16_t boost_pwm_max_count; //Used for variable PWM frequency
 
 volatile uint8_t pv_flag = 0;                 //[PJSC v1.10] For PV control
 volatile bool pv_pwm_state;                   // |
+volatile bool pv_position_closed;             // |
 byte pv_operation;                            // |
 byte pv_operation_prev;                       // |
 byte pv_state;                                // |
@@ -1441,13 +1442,15 @@ void initialisePvControl(void)
   currentStatus.PVTargetPosition = 0;           //Set initial PV position 0%
   PvPercentToADC();
 
-  if( configPage15.PVControlEnabled )
+  if( configPage15.PVControlType > 0 )
   {
     pv_operation = PV_OPE_STOP;
 
     if( configPage15.PVPowerupTestEnabled )
     {
       pv_state = PV_STATE_INIT_OPEN;
+      BIT_CLEAR(pv_flag, BIT_PV_TEST_CLOSE);
+      BIT_CLEAR(pv_flag, BIT_PV_TEST_OPEN);
       BIT_CLEAR(pv_flag, BIT_PV_TEST_CLOSE_COMP);
       BIT_CLEAR(pv_flag, BIT_PV_TEST_OPEN_COMP);
       BIT_CLEAR(pv_flag, BIT_PV_TEST_COMP);
@@ -1456,6 +1459,12 @@ void initialisePvControl(void)
     {
       pv_state = PV_STATE_ACTIVE;
     }
+  }
+
+  if( configPage15.PVControlType == PV_TYPE_SAEC )
+  {
+    if( digitalRead(pinExtTrigger) == LOW ) { pv_position_closed = true;  }
+    else                                    { pv_position_closed = false; }
   }
 }
 
@@ -1466,21 +1475,38 @@ void PvPercentToADC(void)
   pv_target_position_adc = configPage15.PVPosMin + div100(tempPVPositionADC);
 }
 
+bool PvStayCountCheck(void)
+{
+  bool pv_count_check_comp = false;
+
+  pv_stay_count++;
+  if( pv_stay_count > (PV_STAY_COUNT_MAX * 10) )
+  {
+    pv_stay_count = 0;
+    pv_count_check_comp = true;
+    //pv_state++;
+  }
+
+  return pv_count_check_comp;
+}
+
 bool PvHoldCheck(void)
 {
   bool pv_stay_check_comp = false;
 
-  //if( currentStatus.PVPosition == currentStatus.PVTargetPosition )
-  if( (pv_target_position_adc <= (currentStatus.PVPositionADC + configPage15.PVhisterysis))
-   && (pv_target_position_adc >= (currentStatus.PVPositionADC - configPage15.PVhisterysis)) )
+  if( configPage15.PVControlType == PV_TYPE_YPVS )
   {
-    pv_stay_count++;
-    if( pv_stay_count > (PV_STAY_COUNT_MAX * 10) )
+    //if( currentStatus.PVPosition == currentStatus.PVTargetPosition )
+    if( (pv_target_position_adc <= (currentStatus.PVPositionADC + configPage15.PVhisterysis))
+     && (pv_target_position_adc >= (currentStatus.PVPositionADC - configPage15.PVhisterysis)) )
     {
-      pv_stay_count = 0;
-      pv_stay_check_comp = true;
-      //pv_state++;
+      pv_stay_check_comp = PvStayCountCheck();
     }
+  }
+  else if( configPage15.PVControlType == PV_TYPE_SAEC )
+  {
+    if( BIT_CHECK(pv_flag, BIT_PV_TEST_OPEN) && (pv_position_closed == false) ) { pv_stay_check_comp = PvStayCountCheck(); }
+    if( BIT_CHECK(pv_flag, BIT_PV_TEST_CLOSE) && (pv_position_closed == true) ) { pv_stay_check_comp = PvStayCountCheck(); }
   }
 
   return pv_stay_check_comp;
@@ -1490,16 +1516,41 @@ void PvTest(void)
 {
   if( !BIT_CHECK(pv_flag, BIT_PV_TEST_OPEN_COMP) && !BIT_CHECK(pv_flag, BIT_PV_TEST_CLOSE_COMP) )
   {
-    currentStatus.PVTargetPosition = 0;
+    if( configPage15.PVControlType == PV_TYPE_YPVS )
+    {
+      currentStatus.PVTargetPosition = 0;
+    }
+    else if( configPage15.PVControlType == PV_TYPE_SAEC )
+    {
+      BIT_SET(pv_flag, BIT_PV_TEST_OPEN);
+      BIT_SET(currentStatus.testMode, BIT_TEST_ON);
+    }
+
     if( PvHoldCheck() ) { BIT_SET(pv_flag, BIT_PV_TEST_CLOSE_COMP); }
   }
   else if( !BIT_CHECK(pv_flag, BIT_PV_TEST_OPEN_COMP) && BIT_CHECK(pv_flag, BIT_PV_TEST_CLOSE_COMP) )
   {
-    currentStatus.PVTargetPosition = 100;
+    if( configPage15.PVControlType == PV_TYPE_YPVS )
+    {
+      currentStatus.PVTargetPosition = 100;
+    }
+    else if( configPage15.PVControlType == PV_TYPE_SAEC )
+    {
+      if( BIT_CHECK(pv_flag, BIT_PV_TEST_OPEN) ) { BIT_CLEAR(pv_flag, BIT_PV_TEST_OPEN); }
+      BIT_SET(pv_flag, BIT_PV_TEST_CLOSE);
+      BIT_SET(currentStatus.testMode, BIT_TEST_ON);
+    }
+
     if( PvHoldCheck() ) { BIT_SET(pv_flag, BIT_PV_TEST_OPEN_COMP); }
   }
   else if( BIT_CHECK(pv_flag, BIT_PV_TEST_OPEN_COMP) && BIT_CHECK(pv_flag, BIT_PV_TEST_CLOSE_COMP) )
   {
+    if( configPage15.PVControlType == PV_TYPE_SAEC )
+    {
+      if( BIT_CHECK(pv_flag, BIT_PV_TEST_OPEN) ) { BIT_CLEAR(pv_flag, BIT_PV_TEST_OPEN);  }
+      if( BIT_CHECK(pv_flag, BIT_PV_TEST_CLOSE) ){ BIT_CLEAR(pv_flag, BIT_PV_TEST_CLOSE); }
+      if( BIT_CHECK(currentStatus.testMode, BIT_TEST_ON) ){ BIT_CLEAR(currentStatus.testMode, BIT_TEST_ON); }
+    }
     if( !BIT_CHECK(pv_flag, BIT_PV_TEST_COMP) ) { BIT_SET(pv_flag, BIT_PV_TEST_COMP); }
     pv_state = PV_STATE_ACTIVE;
   }
@@ -1507,7 +1558,7 @@ void PvTest(void)
 
 void PvControl(void)
 {
-  if( configPage15.PVControlEnabled )
+  if( configPage15.PVControlType > 0 )
   {
     pv_pwm_target_value = halfPercentage(configPage15.PVPWMDuty, pv_pwm_max_count);
     //pv_pid_current_position_adc = currentStatus.PVPositionADC;
@@ -1537,26 +1588,63 @@ void PvControl(void)
     }
 
     /* PV operation check */
-    //if( pv_target_position_adc > (pv_pid_current_position_adc + PV_HISTERYSIS) )
-    //if( pv_target_position_adc > (currentStatus.PVPositionADC + PV_HISTERYSIS) )
-    if( pv_target_position_adc > (currentStatus.PVPositionADC + configPage15.PVhisterysis) )
+    switch ( configPage15.PVControlType )
     {
-      if( (pv_operation == PV_OPE_BACKWARD) )                                                 { pv_operation = PV_OPE_STOP;           }
-      else                                                                                    { pv_operation = PV_OPE_FORWARD;        }
-    }
-    //else if( pv_target_position_adc < (pv_pid_current_position_adc - PV_HISTERYSIS) )
-    //else if( pv_target_position_adc < (currentStatus.PVPositionADC - PV_HISTERYSIS) )
-    else if( pv_target_position_adc < (currentStatus.PVPositionADC - configPage15.PVhisterysis) )
-    {
-      if( (pv_operation == PV_OPE_FORWARD) )                                                  { pv_operation = PV_OPE_STOP;           }
-      else                                                                                    { pv_operation = PV_OPE_BACKWARD;       }
-    }
-    else
-    {
-      if( (pv_operation == PV_OPE_FORWARD) || (pv_operation == PV_OPE_FORWARD_BRAKE) )        { pv_operation = PV_OPE_FORWARD_BRAKE;  }
-      else if( (pv_operation == PV_OPE_BACKWARD) || (pv_operation == PV_OPE_BACKWARD_BRAKE) ) { pv_operation = PV_OPE_BACKWARD_BRAKE; }
-      else                                                                                    { pv_operation = PV_OPE_STOP;           }
-      //                                                                                          { pv_operation = PV_OPE_STOP;           }
+      case PV_TYPE_YPVS:
+        if( pv_target_position_adc > (currentStatus.PVPositionADC + configPage15.PVhisterysis) )
+        {
+          if( (pv_operation == PV_OPE_BACKWARD) )                                                 { pv_operation = PV_OPE_STOP;           }
+          else                                                                                    { pv_operation = PV_OPE_FORWARD;        }
+        }
+        else if( pv_target_position_adc < (currentStatus.PVPositionADC - configPage15.PVhisterysis) )
+        {
+          if( (pv_operation == PV_OPE_FORWARD) )                                                  { pv_operation = PV_OPE_STOP;           }
+          else                                                                                    { pv_operation = PV_OPE_BACKWARD;       }
+        }
+        else
+        {
+          if( (pv_operation == PV_OPE_FORWARD) || (pv_operation == PV_OPE_FORWARD_BRAKE) )        { pv_operation = PV_OPE_FORWARD_BRAKE;  }
+          else if( (pv_operation == PV_OPE_BACKWARD) || (pv_operation == PV_OPE_BACKWARD_BRAKE) ) { pv_operation = PV_OPE_BACKWARD_BRAKE; }
+          else                                                                                    { pv_operation = PV_OPE_STOP;           }
+        }
+        break;
+
+      case PV_TYPE_SAEC:
+        if( (currentStatus.RPM >= (configPage15.PVCloseRPM * 50)) || (BIT_CHECK(pv_flag, BIT_PV_TEST_CLOSE) && BIT_CHECK(currentStatus.testMode, BIT_TEST_ON)) )
+        {
+          if( pv_position_closed == false )
+          {
+            if( digitalRead(pinExtTrigger) == LOW )                                               { pv_operation = PV_OPE_FORWARD_BRAKE; pv_position_closed = true; }
+            else if( (pv_operation == PV_OPE_BACKWARD) )                                          { pv_operation = PV_OPE_STOP;           }
+            else                                                                                  { pv_operation = PV_OPE_FORWARD;        }
+          }
+          else
+          {
+            if( digitalRead(pinExtTrigger) == HIGH )                                              { pv_operation = PV_OPE_BACKWARD;       }
+            else                                                                                  { pv_operation = PV_OPE_FORWARD_BRAKE;  }
+          }
+        }
+        else if( (currentStatus.RPM <= (configPage15.PVOpenRPM * 50)) || (BIT_CHECK(pv_flag, BIT_PV_TEST_OPEN) && BIT_CHECK(currentStatus.testMode, BIT_TEST_ON)) )
+        {
+          if( pv_position_closed == true )
+          {
+            if( digitalRead(pinCaptureDuty1) == LOW )                                             { pv_operation = PV_OPE_BACKWARD_BRAKE; pv_position_closed = false; }
+            else if( (pv_operation == PV_OPE_FORWARD) )                                           { pv_operation = PV_OPE_STOP;           }
+            else                                                                                  { pv_operation = PV_OPE_BACKWARD;       }
+          }
+          else
+          {
+            if( digitalRead(pinCaptureDuty1) == HIGH )                                            { pv_operation = PV_OPE_FORWARD;        }
+            else                                                                                  { pv_operation = PV_OPE_BACKWARD_BRAKE; }
+          }
+        }
+        else
+        {
+          if( (pv_operation == PV_OPE_FORWARD) || (pv_operation == PV_OPE_FORWARD_BRAKE) )        { pv_operation = PV_OPE_FORWARD_BRAKE;  }
+          else if( (pv_operation == PV_OPE_BACKWARD) || (pv_operation == PV_OPE_BACKWARD_BRAKE) ) { pv_operation = PV_OPE_BACKWARD_BRAKE; }
+          else                                                                                    { pv_operation = PV_OPE_STOP;           }
+        }
+        break;
     }
 
     /* Stuck check */
@@ -1617,6 +1705,22 @@ void PvControl(void)
     //pv_pid_last_position_adc = pv_pid_current_position_adc;
     pv_pid_last_position_adc = currentStatus.PVPositionADC;
   }
+}
+
+void pvCloseInterrupt(void)
+{
+  pv_position_closed = true;
+  pv_operation = PV_OPE_FORWARD_BRAKE;
+  PV_FORWARD_BRAKE();
+  IGN5_TIMER_DISABLE();
+}
+
+void pvOpenInterrupt(void)
+{
+  pv_position_closed = false;
+  pv_operation = PV_OPE_BACKWARD_BRAKE;
+  PV_BACKWARD_BRAKE();
+  IGN5_TIMER_DISABLE();
 }
 
 //******************** [PJSC v1.10] PV PWM interrrupt ********************

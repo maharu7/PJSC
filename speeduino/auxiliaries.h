@@ -30,6 +30,9 @@ void PvControl(void);
 void PvPercentToADC(void);
 void PvTest(void);
 bool PvHoldCheck(void);
+bool PvStayCountCheck(void);
+void pvCloseInterrupt(void);
+void pvOpenInterrupt(void);
 //******************** [PJSC v1.10] ********************
 
 #define SIMPLE_BOOST_P  1
@@ -142,8 +145,12 @@ bool PvHoldCheck(void);
 #define PV_FORWARD_BRAKE()      { PV_DIS_LOW();  PV_DIR_HIGH(); PV_PWM_LOW();  }
 #define PV_BACKWARD_BRAKE()     { PV_DIS_LOW();  PV_DIR_LOW();  PV_PWM_LOW();  }
 
-#define PV_HISTERYSIS           2
-#define PV_STAY_COUNT_MAX      60
+#define PV_TYPE_DISABLE         0
+#define PV_TYPE_YPVS            1
+#define PV_TYPE_SAEC            2
+#define PV_TYPE_ATAC            3
+
+#define PV_STAY_COUNT_MAX      70
 #define PV_STUCK_THRESHOLD    100
 
 #define PV_OPE_STOP             0
@@ -158,9 +165,11 @@ bool PvHoldCheck(void);
 #define PV_STATE_ACTIVE         3
 #define PV_STATE_STUCK          4
 
-#define BIT_PV_TEST_CLOSE_COMP  0
-#define BIT_PV_TEST_OPEN_COMP   1
-#define BIT_PV_TEST_COMP        2
+#define BIT_PV_TEST_CLOSE       0
+#define BIT_PV_TEST_OPEN        1
+#define BIT_PV_TEST_CLOSE_COMP  2
+#define BIT_PV_TEST_OPEN_COMP   3
+#define BIT_PV_TEST_COMP        4
 
 extern volatile PORT_TYPE *mux1_pin_port;
 extern volatile byte mux1_pin_mask;
@@ -193,6 +202,7 @@ extern unsigned int pv_pwm_max_count;
 extern volatile unsigned int pv_pwm_cur_value;
 extern long pv_pwm_target_value;
 extern volatile bool pv_pwm_state;
+extern volatile bool pv_position_closed;
 //extern unsigned int pv_pid_current_position_adc;
 //******************** [PJSC v1.10] ********************
 

@@ -97,7 +97,7 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
     case TS_CMD_TEST_ENBL: // cmd is enable
       // currentStatus.testactive = 1;
       BIT_SET(currentStatus.testOutputs, 1);
-      BIT_SET(currentStatus.testMode, BIT_TEST_ON);                           //[PJSC v1.10tmp]
+      BIT_SET(currentStatus.testMode, BIT_TEST_ON);                           //[PJSC v1.10]
       break;
 
     case TS_CMD_INJ1_ON: // cmd group is for injector1 on actions
@@ -608,7 +608,7 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
     case TS_CMD_MUXHC_OFF: // cmd group is for MUX HC off actions
       if( BIT_CHECK(currentStatus.testOutputs, 1) )
       {                               
-        closeMuxHC();                                                                              //[PJSC v1.10tmp]
+        closeMuxHC();                                                                              //[PJSC v1.10
         DISABLE_BOOST_TIMER();
         BIT_CLEAR(currentStatus.testMode, BIT_TEST_ON); 
         BIT_CLEAR(currentStatus.testMode, BIT_TEST_PWM);
@@ -626,7 +626,7 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       break;
     //************************* [PJSC v1.10] *************************
 
-    //**************** [PJSC v1.10tmp] For PV control *****************
+    //**************** [PJSC v1.10] For PV control *****************
     case TS_CMD_PV_ROTATE:   // cmd group is for PV control
       pv_target_position_adc = configPage15.PVPosTarget;
       break;
@@ -649,14 +649,24 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       PV_PWM_LOW();
       break;
 
-    case TS_CMD_PV_DIS_HIGH:     // cmd group is for PV control
+    case TS_CMD_PV_DIS_HIGH:   // cmd group is for PV control
       PV_DIS_HIGH();
       break;
 
-    case TS_CMD_PV_DIS_LOW:      // cmd group is for PV control
+    case TS_CMD_PV_DIS_LOW:    // cmd group is for PV control
       PV_DIS_LOW();
       break;
-    //**************** [PJSC v1.10tmp] For PV control *****************
+
+    case TS_CMD_PV_OPEN:       // cmd group is for PV control
+      if( BIT_CHECK(pv_flag, BIT_PV_TEST_CLOSE) ) { BIT_CLEAR(pv_flag, BIT_PV_TEST_CLOSE); }
+      BIT_SET(pv_flag, BIT_PV_TEST_OPEN);
+      break;
+
+    case TS_CMD_PV_CLOSE:      // cmd group is for PV control
+      if( BIT_CHECK(pv_flag, BIT_PV_TEST_OPEN) )  { BIT_CLEAR(pv_flag, BIT_PV_TEST_OPEN);  }
+      BIT_SET(pv_flag, BIT_PV_TEST_CLOSE);
+      break;
+    //**************** [PJSC v1.10] For PV control *****************
 
     //VSS Calibration routines
     case TS_CMD_VSS_60KMH:

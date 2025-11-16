@@ -351,7 +351,8 @@ static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check all uses of TOOTH_LOG_SIZE");
 #define SPARK2_CONDITION_TPS 2
 #define SPARK2_CONDITION_ETH 3
 #define SPARK2_CONDITION_GEAR 4    //[PJSC v1.10]
-#define SPARK2_CONDITION_TPSDOT 5  //[PJSC v1.10]
+#define SPARK2_CONDITION_BARO 5    //[PJSC v1.10]
+#define SPARK2_CONDITION_TPSDOT 6  //[PJSC v1.10]
 
 #define RESET_CONTROL_DISABLED             0U
 #define RESET_CONTROL_PREVENT_WHEN_RUNNING 1U
@@ -1645,7 +1646,7 @@ struct config15 {
   byte pullupDigitalInput2: 1;
   byte pullupDigitalInput3: 1;
   byte pullupVSS: 1;
-  byte unused15_92: 1;
+  byte squirtDeviceType: 1;
 
   byte exTrigModeSelect: 3;          //93
   byte externalTrigEdge: 1;
@@ -1655,14 +1656,13 @@ struct config15 {
   byte analogInputPortSelection: 2;  //94
   byte analogInputPortSelection2: 2;
   byte PVCalibrationMode: 1;
-  byte PVControlEnabled: 1;          //[PJSC v1.10] For PV control
+  byte PVControlType: 2;             //[PJSC v1.10] For PV control
   byte PVPowerupTestEnabled: 1;      //[PJSC v1.10] For PV control
-  byte oilSolenoidEnabled : 1;
 
   byte ADCFILTER_EGT;                //95
   byte ADCFILTER_PV;                 //96
 
-  byte squirtDeviceType: 1;          //97
+  byte oilSolenoidEnabled : 1;       //97
   byte mapSeparationEnabled: 1;
   byte mapSwitchingEnabled: 1;
   byte vvtSamplingRate: 1;
@@ -1788,6 +1788,9 @@ struct config15 {
   byte PVPWMDuty;                    //167
   int8_t sparkLatency;               //168  [PJSC v1.10] For adjust ignition timing
   int8_t angleOffset;                //169  [PJSC v1.10] For adjust ignition timing
+
+  byte PVCloseRPM;                   //170
+  byte PVOpenRPM;                    //171
 
   //byte gap1M;                        //168
   //byte gap1N;                        //169

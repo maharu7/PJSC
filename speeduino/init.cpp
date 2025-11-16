@@ -348,11 +348,11 @@ void initialiseAll(void)
     
     noInterrupts();
     initialiseTriggers();
-    if(configPage15.exTrigModeSelect != 0) { initialiseExternalTrigger(); }                  //[PJSC] For External Trigger
-    if(configPage15.dutyPulseCaptureEnabled != 0) { initialiseCaptureDutyPulse(); }          //[PJSC v1.03] For capturing duty pulse
-    //if(configPage15.dutyPulseCaptureEnabled2 == true) { initialiseCaptureDutyPulse2(); }   //[PJSC] For capturing duty pulse
-    currentStatus.acclAdvActive = false;                                                     //[PJSC v1.10]
-    currentStatus.accelAdvance = 0;                                                          //[PJSC v1.10]
+    if( (configPage15.exTrigModeSelect != 0) || (configPage15.PVControlType == PV_TYPE_SAEC) ) { initialiseExternalTrigger(); }          //[PJSC v1.10] For External Trigger
+    if( (configPage15.dutyPulseCaptureEnabled != 0) || (configPage15.PVControlType == PV_TYPE_SAEC) ) { initialiseCaptureDutyPulse(); }  //[PJSC v1.10] For capturing duty pulse
+    //if(configPage15.dutyPulseCaptureEnabled2 == true) { initialiseCaptureDutyPulse2(); }                                               //[PJSC] For capturing duty pulse
+    currentStatus.acclAdvActive = false;                                                                                                 //[PJSC v1.10]
+    currentStatus.accelAdvance = 0;                                                                                                      //[PJSC v1.10]
     //The secondary input can be used for VSS if nothing else requires it. Allows for the standard VR conditioner to be used for VSS. This MUST be run after the initialiseTriggers() function
     if( VSS_USES_RPM2() ) { attachInterrupt(digitalPinToInterrupt(pinVSS), vssPulse, RISING); } //Secondary trigger input can safely be used for VSS
     if( FLEX_USES_RPM2() ) { attachInterrupt(digitalPinToInterrupt(pinFlex), flexPulse, CHANGE); } //Secondary trigger input can safely be used for Flex sensor
@@ -2774,111 +2774,64 @@ void setPinMapping(byte boardID)
       break;
 
     case 71:
-      //[PJSC]Pin mappings as per the PJSC ver1.10 shield (2021.06.29)
+      //[PJSC]Pin mappings as per the PJSC ver1.10 (2025.11.09)
       pinInjector1     = 10;     //Output pin injector 1 is on
-      pinInjector2     = 12;     //Output pin injector 2 is on
-      pinInjector3     = 45;     //Output pin injector 3 is on
-      pinInjector4     = 46;     //Output pin injector 4 is on
-      pinInjector5     = 47;     //Output pin injector 5 is on
-      pinCoil1         = 40;     //Pin for coil 1
-      pinCoil2         = 38;     //Pin for coil 2
-      pinCoil3         = 41;     //Pin for coil 3
-      pinCoil4         = 39;     //Pin for coil 4
-      pinCoil5         = 34;     //Pin for coil 5 PLACEHOLDER value for now
-      pinTrigger       = 21;     //The CAS pin
-      pinTrigger2      = 20;     //The Cam Sensor pin
-      pinO2_2          = A0;     //O2 Sensor 2nd pin
-      pinBaro          = A1;     //[PJSC] For Barometric sensor suppot
-      pinO2            = A2;     //O2 Sensor pin
-      pinBat           = A3;     //Battery reference voltage pin
-      pinExValve       = A5;     //Exhaust valve position input pin
-      pinEGT           = A6;     //
-      pinIAT           = A9;     //IAT sensor pin
-      pinTPS           = A10;    //TPS input pin
-      pinCLT           = A13;    //CLS sensor pin
-      pinMAP           = A14;    //MAP sensor pin
-      pinDisplayReset  = 48;     //OLED reset pin
-      pinTachOut       = 49;     //Tacho output pin  (Goes to ULN2803)
-      pinIdle1         = 5;      //Single wire idle control                 //[PJSC v1.01]
-      pinIdle2         = 7;      //2 wire idle control
-      pinBoost         = 9;      //Boost control
-      pinVVT_1         = 11;     //Default VVT output
-      pinFuelPump      = 44;     //Fuel pump output  (Goes to ULN2803)
-      pinStepperDir    = 16;     //Direction pin  for DRV8825 driver
-      pinStepperStep   = 17;     //Step pin for DRV8825 driver
-      pinStepperEnable = 24;     //Enable pin for DRV8825
-      pinFan           = 31;     //Pin for the fan output (Goes to ULN2803)  //[PJSC v1.01]
-      pinLaunch        = 13;     //Can be overwritten below
-      pinFlex          = 2;      //Flex sensor (Must be external interrupt enabled)
-      pinVSS           = 19;     //VSS input pin
-      pinExtTrigger    = 3;      //[PJSC] External Trigger
-      pinCaptureDuty1  = 18;     //[PJSC] For capturing duty pulse
-//      pinCaptureDuty2 = 19;    //[PJSC] For capturing duty pulse
-      pinResetControl  = 43;     //Reset control output
-
-      pinMuxout1       = 6;      //[PJSC v1.01] For MUX output setting
-      pinMuxout2       = 8;      //[PJSC v1.01] For MUX output setting
-//      pinMuxout3       = 14;     //[PJSC v1.01] For MUX output setting
-//      pinMuxout4       = 15;     //[PJSC v1.01] For MUX output setting
-      pinPvDIR         = 32;     //[PJSC v1.10] For PV control
-      pinPvPWM         = 34;     //[PJSC v1.10] For PV control
-      break;
-
-    case 72:
-      //[PJSC]Pin mappings as per the PJSC ver1.10 SPARK shield (2022.07.18)
-      pinInjector1     =  6;     //Output pin injector 1 is on
-      pinInjector2     = 10;     //Output pin injector 2 is on
+      pinInjector2     = 11;     //Output pin injector 2 is on
       pinInjector3     = 12;     //Output pin injector 3 is on
-      pinInjector4     = 24;     //Output pin injector 4 is on
-      pinInjector5     = 26;     //Output pin injector 5 is on
+      pinInjector4     = 13;     //Output pin injector 4 is on
+      pinInjector5     = 15;     //Output pin injector 5 is on
       pinCoil1         = 34;     //Pin for coil 1
       pinCoil2         = 36;     //Pin for coil 2
-      pinCoil3         = 46;     //Pin for coil 3
-      pinCoil4         = 44;     //Pin for coil 4
-      pinCoil5         = 47;     //Pin for coil 5 PLACEHOLDER value for now
-      pinTrigger       =  3;     //The CAS pin
+      pinCoil3         = 38;     //Pin for coil 3
+      pinCoil4         = 40;     //Pin for coil 4
+      pinCoil5         = 35;     //Pin for coil 5 PLACEHOLDER value for now
+      pinTrigger       = 19;     //The CAS pin
       pinTrigger2      = 18;     //The Cam Sensor pin
-      pinTrigger3      = 19;     //The Cam sensor 2 pin
-      pinBaro          = A0;     //[PJSC] For Barometric sensor suppot
-      pinEGT           = A1;     //[PJSC] EGT sensor pin
-      pinAnalogInput1  = A2;     //[PJSC v1.02] For selectable analog input
-      pinBat           = A3;     //Battery reference voltage pin
-      pinO2_2          = A4;     //O2 Sensor 2nd pin
-      pinExValve       = A5;     //Exhaust valve position input pin
-      pinO2            = A6;     //O2 Sensor pin
-      pinCLT           = A7;     //CLS sensor pin
-      pinMAP           = A8;     //MAP sensor pin
-      pinIAT           = A9;     //IAT sensor pin
-      pinTPS           = A14;    //TPS input pin
+      pinTrigger3      = 21;     //The Cam sensor 2 pin
+      pinEGT           = A0;     //[PJSC] EGT sensor pin
+      pinBat           = A1;     //Battery reference voltage pin
+      pinTPS           = A2;     //TPS input pin
+      pinAnalogInput1  = A3;     //[PJSC v1.02] For selectable analog input
+      pinMAP           = A5;     //MAP sensor pin
+      pinO2_2          = A6;     //O2 Sensor 2nd pin
+      pinBaro          = A7;     //[PJSC] For Barometric sensor suppot
+      pinO2            = A10;    //O2 Sensor pin
+      pinIAT           = A11;    //IAT sensor pin
+      pinCLT           = A13;    //CLS sensor pin
+      pinExValve       = A14;    //Exhaust valve position input pin
       pinSpareTemp1    = A15;    //[PJSC v1.10] For spare thermistor input
-      pinFuelPump      = 31;     //Fuel pump output  (Goes to ULN2803)
-      pinDisplayReset  = 48;     //OLED reset pin
-      pinTachOut       = 37;     //Tacho output pin  (Goes to ULN2803)
-      pinIdle1         = 40;     //Single wire idle control                 //[PJSC v1.01]
-      pinIdle2         = 27;     //2 wire idle control
-      pinBoost         = 42;     //Boost control
-      pinVVT_1         = 35;     //Default VVT output
-      pinVVT_2         = 53;     //Default VVT2 output
-      pinStepperDir    = 38;     //Direction pin  for DRV8825 driver
-      pinStepperStep   = 49;     //Step pin for DRV8825 driver
-      pinStepperEnable = 50;     //Enable pin for DRV8825
+      pinFuelPump      = 27;     //Fuel pump output  (Goes to ULN2803)
+      pinDisplayReset  = 44;     //OLED reset pin
+      pinTachOut       = 45;     //Tacho output pin  (Goes to ULN2803)
+      pinIdle1         = 46;     //Single wire idle control                  //[PJSC v1.01]
+      pinIdle2         = 47;     //2 wire idle control
+      pinBoost         = 48;     //Boost control
+      pinVVT_1         = 49;     //Default VVT output
+      pinVVT_2         = 50;     //Default VVT2 output
+      pinStepperDir    = 14;     //Direction pin  for DRV8825 driver
+      pinStepperStep   = 9;      //Step pin for DRV8825 driver
+      pinStepperEnable = 8;      //Enable pin for DRV8825
       pinFan           = 51;     //Pin for the fan output (Goes to ULN2803)  //[PJSC v1.01]
       pinLaunch        = 52;     //Can be overwritten below
-      pinFlex          = 29;     //Flex sensor (Must be external interrupt enabled)
+      pinFlex          = 53;     //Flex sensor (Must be external interrupt enabled)
       pinVSS           = 20;     //VSS input pin
-      pinWMIEmpty      = 23;
-      pinWMIIndicator  = 32;
-      pinWMIEnabled    = 33;
+      pinWMIEmpty      = 28;
+      pinWMIIndicator  = 29;
+      pinWMIEnabled    = 30;
 
-      pinExtTrigger    = 21;     //[PJSC] External Trigger
-      pinCaptureDuty1  = 2;      //[PJSC] For capturing duty pulse
-//      pinCaptureDuty2  = 22;      //[PJSC] For capturing duty pulse
-      pinResetControl  = 28;     //Reset control output
-      pinMuxout1       = 39;     //[PJSC v1.01] For MUX output setting
-      pinMuxout2       = 41;     //[PJSC v1.01] For MUX output setting
-      pinMuxout3       = 43;     //[PJSC v1.01] For MUX output setting
-      pinMuxout4       = 45;     //[PJSC v1.01] For MUX output setting
-      pinMuxoutHC      = 30;     //[PJSC v1.01] For MUX output setting
+      pinExtTrigger    = 2;      //[PJSC] External Trigger
+      pinCaptureDuty1  = 3;      //[PJSC] For capturing duty pulse
+      //pinCaptureDuty2  = 21;     //[PJSC] For capturing duty pulse
+      pinResetControl  = 31;     //Reset control output
+      pinMuxout1       = 4;      //[PJSC v1.01] For MUX output setting
+      pinMuxout2       = 5;      //[PJSC v1.01] For MUX output setting
+      pinMuxout3       = 6;      //[PJSC v1.01] For MUX output setting
+      pinMuxout4       = 7;      //[PJSC v1.01] For MUX output setting
+      pinMuxoutHC      = 42;     //[PJSC v1.01] For MUX output setting
+      pinPvDIR         = 39;     //[PJSC v1.10] For PV control
+      pinPvPWM         = 43;     //[PJSC v1.10] For PV control
+      pinPvDIS         = 41;     //[PJSC v1.10] For PV control
+      pinOilSolenoid   = 26;     //[PJSC v1.10] For Oil Solenoid control
       break;
 
     case 73:
@@ -4759,61 +4712,64 @@ void initialiseExternalTrigger(void)     //[PJSC] For External Trigger Interruot
   pinMode(pinExtTrigger, INPUT);  //[PJSC] External Trigger
   detachInterrupt(extTriggerInterrupt);
 
-  switch (configPage15.exTrigModeSelect) {
-    case EXTRIG_SPARK_CAPTURE:
-      currentStatus.extTriggerAngle = 0;
-      currentStatus.extTriggerRPM = 0;
-      currentStatus.extTriggerLoad = 0;
-      if(configPage15.externalTrigEdge == 0) { attachInterrupt(extTriggerInterrupt, captureExtTrigger, RISING); }
-      else { attachInterrupt(extTriggerInterrupt, captureExtTrigger, FALLING); }
-      break;
+  if( configPage15.PVControlType == PV_TYPE_SAEC ) { attachInterrupt(extTriggerInterrupt, pvCloseInterrupt, FALLING); }
+  else
+  {
+    switch (configPage15.exTrigModeSelect) {
+      case EXTRIG_SPARK_CAPTURE:
+        currentStatus.extTriggerAngle = 0;
+        currentStatus.extTriggerRPM = 0;
+        currentStatus.extTriggerLoad = 0;
+        if(configPage15.externalTrigEdge == 0) { attachInterrupt(extTriggerInterrupt, captureExtTrigger, RISING); }
+        else { attachInterrupt(extTriggerInterrupt, captureExtTrigger, FALLING); }
+        break;
 
-    case EXTRIG_MAP_SELECT:
-      currentStatus.mapSelectSw = digitalRead(pinExtTrigger);
-      attachInterrupt(extTriggerInterrupt, changeMapSelectSw, CHANGE);
-      break;
+      case EXTRIG_MAP_SELECT:
+        currentStatus.mapSelectSw = digitalRead(pinExtTrigger);
+        attachInterrupt(extTriggerInterrupt, changeMapSelectSw, CHANGE);
+        break;
 
-    case EXTRIG_MISFIRE_DETECTION:
-      currentStatus.extTriggerRPM = 0;
-      if(configPage15.externalTrigEdge == 0) { attachInterrupt(extTriggerInterrupt, misfireDetect, RISING); }
-      else { attachInterrupt(extTriggerInterrupt, misfireDetect, FALLING); }
-      break;
+      case EXTRIG_MISFIRE_DETECTION:
+        currentStatus.extTriggerRPM = 0;
+        if(configPage15.externalTrigEdge == 0) { attachInterrupt(extTriggerInterrupt, misfireDetect, RISING); }
+        else { attachInterrupt(extTriggerInterrupt, misfireDetect, FALLING); }
+        break;
 
-    case EXTRIG_VIECLE_SPEED:
-      if(configPage2.vssMode > 1) // VSS modes 2 and 3 are interrupt drive (Mode 1 is CAN)
-      {
-        if(configPage15.externalTrigEdge == 0) { attachInterrupt(extTriggerInterrupt, vssPulse, RISING); }
-        else { attachInterrupt(extTriggerInterrupt, vssPulse, FALLING); }
-      }
+      case EXTRIG_VIECLE_SPEED:
+        if(configPage2.vssMode > 1) // VSS modes 2 and 3 are interrupt drive (Mode 1 is CAN)
+        {
+          if(configPage15.externalTrigEdge == 0) { attachInterrupt(extTriggerInterrupt, vssPulse, RISING); }
+          else { attachInterrupt(extTriggerInterrupt, vssPulse, FALLING); }
+        }
+        break;
 
-      break;
+      case EXTRIG_PWM_CAPT:
+        dutyON_time = dutyOFF_time = micros();
+        currentStatus.dutyCaptureCount = 0;
+        currentStatus.dutyRatio = 0;
+        currentStatus.dutyFreq = 0;
 
-    case EXTRIG_PWM_CAPT:
-      dutyON_time = dutyOFF_time = micros();
-      currentStatus.dutyCaptureCount = 0;
-      currentStatus.dutyRatio = 0;
-      currentStatus.dutyFreq = 0;
+        if(configPage15.dutyPulseOnLevel == 0)
+        {
+          attachInterrupt(extTriggerInterrupt, captureDutyPulseONtime, RISING);
+          attachInterrupt(extTriggerInterrupt, captureDutyPulseOFFtime, FALLING);
+        }
+        else {
+          attachInterrupt(extTriggerInterrupt, captureDutyPulseONtime, FALLING);
+          attachInterrupt(extTriggerInterrupt, captureDutyPulseOFFtime, RISING);
+        }
+        break;
 
-      if(configPage15.dutyPulseOnLevel == 0)
-      {
-        attachInterrupt(extTriggerInterrupt, captureDutyPulseONtime, RISING);
-        attachInterrupt(extTriggerInterrupt, captureDutyPulseOFFtime, FALLING);
-      }
-      else {
-        attachInterrupt(extTriggerInterrupt, captureDutyPulseONtime, FALLING);
-        attachInterrupt(extTriggerInterrupt, captureDutyPulseOFFtime, RISING);
-      }
-      break;
+      case EXTRIG_SMART_SHIFT:
+        attachInterrupt(extTriggerInterrupt, setDecelerationCorrection, FALLING);
+        break;
 
-    case EXTRIG_SMART_SHIFT:
-      attachInterrupt(extTriggerInterrupt, setDecelerationCorrection, FALLING);
-      break;
-
-    default:
-      currentStatus.extTriggerAngle = 0;
-      if(configPage15.externalTrigEdge == 0) { attachInterrupt(extTriggerInterrupt, captureExtTrigger, RISING); }
-      else { attachInterrupt(extTriggerInterrupt, captureExtTrigger, FALLING); }
-      break;
+      default:
+        currentStatus.extTriggerAngle = 0;
+        if(configPage15.externalTrigEdge == 0) { attachInterrupt(extTriggerInterrupt, captureExtTrigger, RISING); }
+        else { attachInterrupt(extTriggerInterrupt, captureExtTrigger, FALLING); }
+        break;
+    }
   }
 }
 
@@ -4851,61 +4807,65 @@ void initialiseCaptureDutyPulse(void)     //[PJSC] For capturing duty pulse
   pinMode(pinCaptureDuty1, INPUT);
   detachInterrupt(captureDutyPulseInterrupt);
 
-  switch (configPage15.exTrigModeSelect2) {
-    case EXTRIG_SPARK_CAPTURE:
-      currentStatus.extTriggerAngle2 = 0;
-      currentStatus.extTriggerRPM = 0;
-      currentStatus.extTriggerLoad = 0;
-      if(configPage15.externalTrigEdge2 == 0) { attachInterrupt(captureDutyPulseInterrupt, captureExtTrigger2, RISING); }
-      else { attachInterrupt(captureDutyPulseInterrupt, captureExtTrigger2, FALLING); }
-      break;
+  if( configPage15.PVControlType == PV_TYPE_SAEC ) { attachInterrupt(captureDutyPulseInterrupt, pvOpenInterrupt, FALLING); }
+  else
+  {
+    switch (configPage15.exTrigModeSelect2) {
+      case EXTRIG_SPARK_CAPTURE:
+        currentStatus.extTriggerAngle2 = 0;
+        currentStatus.extTriggerRPM = 0;
+        currentStatus.extTriggerLoad = 0;
+        if(configPage15.externalTrigEdge2 == 0) { attachInterrupt(captureDutyPulseInterrupt, captureExtTrigger2, RISING); }
+        else { attachInterrupt(captureDutyPulseInterrupt, captureExtTrigger2, FALLING); }
+        break;
 
-    case EXTRIG_MAP_SELECT:
-      currentStatus.mapSelectSw = digitalRead(pinCaptureDuty1);
-      attachInterrupt(captureDutyPulseInterrupt, changeMapSelectSw, CHANGE);
-      break;
+      case EXTRIG_MAP_SELECT:
+        currentStatus.mapSelectSw = digitalRead(pinCaptureDuty1);
+        attachInterrupt(captureDutyPulseInterrupt, changeMapSelectSw, CHANGE);
+        break;
 
-    case EXTRIG_MISFIRE_DETECTION:
-      currentStatus.extTriggerRPM = 0;
-      if(configPage15.externalTrigEdge2 == 0) { attachInterrupt(captureDutyPulseInterrupt, misfireDetect, RISING); }
-      else { attachInterrupt(captureDutyPulseInterrupt, misfireDetect, FALLING); }
-      break;
+      case EXTRIG_MISFIRE_DETECTION:
+        currentStatus.extTriggerRPM = 0;
+        if(configPage15.externalTrigEdge2 == 0) { attachInterrupt(captureDutyPulseInterrupt, misfireDetect, RISING); }
+        else { attachInterrupt(captureDutyPulseInterrupt, misfireDetect, FALLING); }
+        break;
 
-    case EXTRIG_VIECLE_SPEED:
-      if(configPage2.vssMode > 1) // VSS modes 2 and 3 are interrupt drive (Mode 1 is CAN)
-      {
-        if(configPage15.externalTrigEdge2 == 0) { attachInterrupt(captureDutyPulseInterrupt, vssPulse, RISING); }
-        else { attachInterrupt(captureDutyPulseInterrupt, vssPulse, FALLING); }
-      }
+      case EXTRIG_VIECLE_SPEED:
+        if(configPage2.vssMode > 1) // VSS modes 2 and 3 are interrupt drive (Mode 1 is CAN)
+        {
+          if(configPage15.externalTrigEdge2 == 0) { attachInterrupt(captureDutyPulseInterrupt, vssPulse, RISING); }
+          else { attachInterrupt(captureDutyPulseInterrupt, vssPulse, FALLING); }
+        }
 
-      break;
+        break;
 
-    case EXTRIG_PWM_CAPT:
-      dutyON_time2 = dutyOFF_time2 = micros();
-      currentStatus.dutyCaptureCount2 = 0;
-      currentStatus.dutyRatio2 = 0;
-      currentStatus.dutyFreq2 = 0;
+      case EXTRIG_PWM_CAPT:
+        dutyON_time2 = dutyOFF_time2 = micros();
+        currentStatus.dutyCaptureCount2 = 0;
+        currentStatus.dutyRatio2 = 0;
+        currentStatus.dutyFreq2 = 0;
 
-      if(configPage15.dutyPulseOnLevel2 == 0)
-      {
-        attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseONtime2, RISING);
-        attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseOFFtime2, FALLING);
-      }
-      else {
-        attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseONtime2, FALLING);
-        attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseOFFtime2, RISING);
-      }
-      break;
+        if(configPage15.dutyPulseOnLevel2 == 0)
+        {
+          attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseONtime2, RISING);
+          attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseOFFtime2, FALLING);
+        }
+        else {
+          attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseONtime2, FALLING);
+          attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseOFFtime2, RISING);
+        }
+        break;
 
-    case EXTRIG_SMART_SHIFT:
-      attachInterrupt(captureDutyPulseInterrupt, setDecelerationCorrection, FALLING);
-      break;
+      case EXTRIG_SMART_SHIFT:
+        attachInterrupt(captureDutyPulseInterrupt, setDecelerationCorrection, FALLING);
+        break;
 
-    default:
-      currentStatus.extTriggerAngle2 = 0;
-      if(configPage15.externalTrigEdge2 == 0) { attachInterrupt(captureDutyPulseInterrupt, captureExtTrigger2, RISING); }
-      else { attachInterrupt(captureDutyPulseInterrupt, captureExtTrigger2, FALLING); }
-      break;
+      default:
+        currentStatus.extTriggerAngle2 = 0;
+        if(configPage15.externalTrigEdge2 == 0) { attachInterrupt(captureDutyPulseInterrupt, captureExtTrigger2, RISING); }
+        else { attachInterrupt(captureDutyPulseInterrupt, captureExtTrigger2, FALLING); }
+        break;
+    }
   }
 }
 

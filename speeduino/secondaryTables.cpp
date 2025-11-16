@@ -149,6 +149,24 @@ void calculateSecondarySpark(void)
           BIT_SET(currentStatus.status5, BIT_STATUS5_SPARK2_ACTIVE);        // |Set the bit indicating that the 2nd spark table is in use. 
           currentStatus.advance2 = getAdvance2();                           // |
           currentStatus.advance = currentStatus.advance2;                   // |
+        }                                                                   // |
+      }                                                                     // |
+      else if(configPage10.spark2SwitchVariable == SPARK2_CONDITION_BARO)   // |
+      {                                                                     // |
+        if(currentStatus.baro > configPage10.spark2SwitchValue)             // |
+        {                                                                   // |
+          BIT_SET(currentStatus.status5, BIT_STATUS5_SPARK2_ACTIVE);        // |Set the bit indicating that the 2nd spark table is in use. 
+          currentStatus.advance2 = getAdvance2();                           // |
+          currentStatus.advance = currentStatus.advance2;                   // |
+        }                                                                   // |
+      }                                                                     // |
+      else if(configPage10.spark2SwitchVariable == SPARK2_CONDITION_TPSDOT) // |
+      {                                                                     // |
+        if(currentStatus.tpsDOT > configPage10.spark2SwitchValue)           // |
+        {                                                                   // |
+          BIT_SET(currentStatus.status5, BIT_STATUS5_SPARK2_ACTIVE);        // |Set the bit indicating that the 2nd spark table is in use. 
+          currentStatus.advance2 = getAdvance2();                           // |
+          currentStatus.advance = currentStatus.advance2;                   // |
         }                                                                   // V
       }                                                                     //[PJSC v1.10]
     }

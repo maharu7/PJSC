@@ -92,6 +92,8 @@
 #define TS_CMD_PV_PWM_LOW    1285
 #define TS_CMD_PV_DIS_HIGH   1286
 #define TS_CMD_PV_DIS_LOW    1287
+#define TS_CMD_PV_OPEN       1288
+#define TS_CMD_PV_CLOSE      1289
 //*************** [PJSC v1.10] ***************
 
 #define TS_CMD_STM32_REBOOT     12800
