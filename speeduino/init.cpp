@@ -171,6 +171,7 @@ void initialiseAll(void)
 #endif
     pPrimarySerial = &Serial; //Default to standard Serial interface
     BIT_SET(currentStatus.status4, BIT_STATUS4_ALLOW_LEGACY_COMMS); //Flag legacy comms as being allowed on startup
+    BIT_SET(currentStatus.status5, BIT_STATUS5_ALLOW_TS_ON_SECONDARY_COMMS); //Allow TunerStudio protocol on startup
 
     //Repoint the 2D table structs to the config pages that were just loaded
     construct2dTables();
@@ -1748,6 +1749,7 @@ void setPinMapping(byte boardID)
       pinLaunch = 12; //Can be overwritten below
       pinFlex = 3; // Flex sensor (Must be external interrupt enabled)
       pinResetControl = 39; //Reset control output
+      pinVSS = 2;
       #endif
       //This is NOT correct. It has not yet been tested with this board
       #if defined(CORE_TEENSY35)
@@ -2180,6 +2182,7 @@ void setPinMapping(byte boardID)
       pinSpareLOut4 = 29; //low current output spare4
       pinFan = 24; //Pin for the fan output
       pinResetControl = 46; //Reset control output PLACEHOLDER value for now
+      pinVSS = 2;
     #endif
       break;
 
@@ -2425,6 +2428,11 @@ void setPinMapping(byte boardID)
       pinSpareLOut4 = 29; //low current output spare4
       pinFan = 25; //Pin for the fan output
       pinResetControl = 46; //Reset control output PLACEHOLDER value for now
+      pinVSS = 22;
+
+      pinWMIEmpty = 23; //Spare digital input
+      pinWMIIndicator = pinSpareLOut2; //Spare output
+      pinWMIEnabled = pinSpareLOut1; //Spare output
 
       //CS pin number is now set in a compile flag. 
       // #ifdef USE_SPI_EEPROM
@@ -2463,6 +2471,8 @@ void setPinMapping(byte boardID)
         pinTachOut = 0; //Tacho output pin
 
         pinResetControl = 49; //PLaceholder only. Cannot use 42-47 as these are the SD card
+        pinWMIEmpty = 35; //Spare digital input
+        pinVSS = 34;
 
         //CS pin number is now set in a compile flag. 
         // #ifdef USE_SPI_EEPROM
