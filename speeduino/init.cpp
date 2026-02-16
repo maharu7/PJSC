@@ -3322,7 +3322,7 @@ void setPinMapping(byte boardID)
     }
   }
 
-  if( (configPage2.pinMapping >= 72) && (configPage2.pinMapping <= 75) )       //For PJSC SPARK board
+  if( (configPage2.pinMapping >= 71) && (configPage2.pinMapping <= 75) )       //For PJSC SPARK board
   {
     switch (configPage15.muxout3Selection)
     {
@@ -3483,7 +3483,7 @@ void setPinMapping(byte boardID)
     }
   }
 
-  if( (configPage2.pinMapping == 70) || (configPage2.pinMapping == 71) )  //For PJSC ver1.0 and 1.10 board
+  if( configPage2.pinMapping == 70 )  //For PJSC ver1.0 and 1.10 board
   {
     switch (configPage15.analogInputPortSelection)
     {
@@ -3556,7 +3556,7 @@ void setPinMapping(byte boardID)
   pinMode(pinMuxout1, OUTPUT);
   pinMode(pinMuxout2, OUTPUT);
 
-  if( configPage2.pinMapping >= 72 && configPage2.pinMapping <= 75 )       //For PJSC SPARK board
+  if( configPage2.pinMapping >= 71 && configPage2.pinMapping <= 75 )       //For PJSC SPARK board
   {
     pinMode(pinMuxout3, OUTPUT);
     pinMode(pinMuxout4, OUTPUT);
@@ -4427,6 +4427,19 @@ void initialiseTriggers(void)
       attachInterrupt(triggerInterrupt, triggerHandler, primaryTriggerEdge);
       attachInterrupt(triggerInterrupt2, triggerSecondaryHandler, secondaryTriggerEdge);
 
+      break;
+
+    case DECODER_KATANA2:
+      triggerSetup_KATANA2();
+      triggerHandler = triggerPri_KATANA2;
+      getRPM = getRPM_KATANA2;
+      getCrankAngle = getCrankAngle_KATANA2;
+      triggerSetEndTeeth = triggerSetEndTeeth_KATANA2;
+
+      if(configPage4.TrigEdge == 0) { primaryTriggerEdge = true; } // set as boolean so we can directly use it in decoder.
+      else { primaryTriggerEdge = false; }
+      
+      attachInterrupt(triggerInterrupt, triggerHandler, CHANGE); //Hardcoded change, the primaryTriggerEdge will be used in the decoder to select if it`s an inverted or non-inverted signal.
       break;
     //******************** [PJSC v1.10] ********************
 

@@ -1645,6 +1645,9 @@ void PvControl(void)
           else                                                                                    { pv_operation = PV_OPE_STOP;           }
         }
         break;
+
+      default:
+        break;
     }
 
     /* Stuck check */

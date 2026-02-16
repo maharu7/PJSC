@@ -48,6 +48,7 @@
 #define DECODER_KATANA            28       //[PJSC v1.10]
 #define DECODER_NSR250R           29       //[PJSC v1.10]
 #define DECODER_RGV250            30       //[PJSC v1.10]
+#define DECODER_KATANA2           31       //[PJSC v1.10]
 
 #define BIT_DECODER_2ND_DERIV           0 //The use of the 2nd derivative calculation is limited to certain decoders. This is set to either true or false in each decoders setup routine
 #define BIT_DECODER_IS_SEQUENTIAL       1 //Whether or not the decoder supports sequential operation
@@ -300,6 +301,13 @@ void triggerSec_RGV250(void);
 uint16_t getRPM_RGV250(void);
 int getCrankAngle_RGV250(void);
 void triggerSetEndTeeth_RGV250(void);
+
+void triggerSetup_KATANA2(void);
+void triggerPri_KATANA2(void);
+void triggerSec_KATANA2(void);
+uint16_t getRPM_KATANA2(void);
+int getCrankAngle_KATANA2(void);
+void triggerSetEndTeeth_KATANA2(void);
 //****************** [PJSC v1.10] ******************
 
 /**
