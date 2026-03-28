@@ -202,7 +202,7 @@ void __attribute__((always_inline)) loop(void)
       if( currentStatus.testOutputs == 0 )        //[PJSC v1.01]
       {                                           //[PJSC v1.01]
         VVT1_PIN_LOW();
-        VVT2_PIN_LOW();
+//[PJSC v1.10]        VVT2_PIN_LOW();
         DISABLE_VVT_TIMER();
         boostDisable();
         if(configPage4.ignBypassEnabled > 0) { digitalWrite(pinIgnBypass, LOW); } //Reset the ignition bypass ready for next crank attempt
@@ -506,12 +506,43 @@ void __attribute__((always_inline)) loop(void)
       currentStatus.corrections = correctionsFuel();
 
 //[PJSC v1.10]      currentStatus.PW1 = PW(req_fuel_uS, currentStatus.VE, currentStatus.MAP, currentStatus.corrections, inj_opentime_uS);
-      //*************************************************** [PJSC v1.10] ********************************************************
-      currentStatus.PW1 = PW(req_fuel_uS, currentStatus.inj1VE, currentStatus.MAP10, currentStatus.corrections, inj_opentime_uS);
-      currentStatus.PW2 = PW(req_fuel_uS, currentStatus.inj2VE, currentStatus.MAP10, currentStatus.corrections, inj2_opentime_uS);
-      currentStatus.PW3 = PW(req_fuel_uS, currentStatus.inj3VE, currentStatus.MAP10, currentStatus.corrections, inj3_opentime_uS);
-      currentStatus.PW4 = PW(req_fuel_uS, currentStatus.inj4VE, currentStatus.MAP10, currentStatus.corrections, inj4_opentime_uS);
-      //*************************************************** [PJSC v1.10] ********************************************************
+      //************************************************************* [PJSC v1.10] ***********************************************************************
+      if(configPage15.afr_sensor_selection1)
+      {
+        currentStatus.PW1 = PW(req_fuel_uS, currentStatus.inj1VE, currentStatus.MAP10, currentStatus.corrections2, inj_opentime_uS, currentStatus.O2_2);
+      }
+      else
+      {
+        currentStatus.PW1 = PW(req_fuel_uS, currentStatus.inj1VE, currentStatus.MAP10, currentStatus.corrections, inj_opentime_uS, currentStatus.O2);
+      }
+
+      if(configPage15.afr_sensor_selection2)
+      {
+        currentStatus.PW2 = PW(req_fuel_uS, currentStatus.inj2VE, currentStatus.MAP10, currentStatus.corrections2, inj2_opentime_uS, currentStatus.O2_2);
+      }
+      else
+      {
+        currentStatus.PW2 = PW(req_fuel_uS, currentStatus.inj2VE, currentStatus.MAP10, currentStatus.corrections, inj2_opentime_uS, currentStatus.O2);
+      }
+
+      if(configPage15.afr_sensor_selection3)
+      {
+        currentStatus.PW3 = PW(req_fuel_uS, currentStatus.inj3VE, currentStatus.MAP10, currentStatus.corrections2, inj3_opentime_uS, currentStatus.O2_2);
+      }
+      else
+      {
+        currentStatus.PW3 = PW(req_fuel_uS, currentStatus.inj3VE, currentStatus.MAP10, currentStatus.corrections, inj3_opentime_uS, currentStatus.O2);
+      }
+
+      if(configPage15.afr_sensor_selection4)
+      {
+        currentStatus.PW4 = PW(req_fuel_uS, currentStatus.inj4VE, currentStatus.MAP10, currentStatus.corrections2, inj4_opentime_uS, currentStatus.O2_2);
+      }
+      else
+      {
+        currentStatus.PW4 = PW(req_fuel_uS, currentStatus.inj4VE, currentStatus.MAP10, currentStatus.corrections, inj4_opentime_uS, currentStatus.O2);
+      }
+      //************************************************************* [PJSC v1.10] ***********************************************************************
 
       //Manual adder for nitrous. These are not in correctionsFuel() because they are direct adders to the ms value, not % based
       if( (currentStatus.nitrous_status == NITROUS_STAGE1) || (currentStatus.nitrous_status == NITROUS_BOTH) )
@@ -1292,7 +1323,8 @@ void __attribute__((always_inline)) loop(void)
  * @param injOpen Injector opening time. The time the injector take to open minus the time it takes to close (Both in uS)
  * @return uint16_t The injector pulse width in uS
  */
-uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen)
+//[PJSC v1.10]uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen)
+uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen, uint8_t AFR)     //[PJSC v1.10]
 {
   //Standard float version of the calculation
   //return (REQ_FUEL * (float)(VE/100.0) * (float)(MAP/100.0) * (float)(TPS/100.0) * (float)(corrections/100.0) + injOpen);
@@ -1315,7 +1347,8 @@ uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen)
   else if( configPage2.multiplyMAP == MULTIPLY_MAP_MODE_BARO) { iMAP = (MAP << 7U) / currentStatus.baro10; }     //[PJSC v1.10]
 
   if ( (configPage2.includeAFR == true) && (configPage6.egoType == EGO_TYPE_WIDE) && (currentStatus.runSecs > configPage6.ego_sdelay) ) {
-    iAFR = ((unsigned int)currentStatus.O2 << 7U) / currentStatus.afrTarget;  //Include AFR (vs target) if enabled
+//[PJSC v1.10]    iAFR = ((unsigned int)currentStatus.O2 << 7U) / currentStatus.afrTarget;  //Include AFR (vs target) if enabled
+    iAFR = ((unsigned int)AFR << 7U) / currentStatus.afrTarget;  //[PJSC v1.10]Include AFR (vs target) if enabled
   }
   if ( (configPage2.incorporateAFR == true) && (configPage2.includeAFR == false) ) {
     iAFR = ((unsigned int)configPage2.stoich << 7U) / currentStatus.afrTarget;  //Incorporate stoich vs target AFR, if enabled.

@@ -338,7 +338,9 @@ bool pinIsOutput(byte pin)
   || ((pin == pinFan) && (configPage2.fanEnable == 1))
   || ((pin == pinVVT_1) && (configPage6.vvtEnabled > 0))
   || ((pin == pinVVT_2) && (configPage10.wmiEnabled > 0))
+     /*[PJSC v1.10] Omitto Secondary VVT controll
   || ((pin == pinVVT_2) && (configPage10.vvt2Enabled > 0))
+  	 [PJSC v1.10]*/
   || ((pin == pinBoost) && (configPage6.boostEnabled == 1))
   || ((pin == pinIdle1) && isIdlePWM)
   || ((pin == pinIdle2) && isIdlePWM && (configPage6.iacChannels == 1))
@@ -346,7 +348,7 @@ bool pinIsOutput(byte pin)
   || ((pin == pinStepperStep) && isIdleSteper)
   || ((pin == pinStepperDir) && isIdleSteper)
   || (pin == pinTachOut)
-     /*[PJSC v110] Omitto Air conditioner controll
+     /*[PJSC v1.10] Omitto Air conditioner controll
   || ((pin == pinAirConComp) && (configPage15.airConEnable > 0))
   || ((pin == pinAirConFan) && (configPage15.airConEnable > 0) && (configPage15.airConFanEnabled > 0)) [PJSC v110]*/ )
   {

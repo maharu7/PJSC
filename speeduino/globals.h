@@ -831,6 +831,8 @@ struct statuses {
   uint16_t extTriggerRPM;
   uint16_t extTriggerLoad;
   uint16_t EGTADC;
+  uint16_t corrections2;
+  byte egoCorrection2;
   byte testMode;
   byte testModeActive;
   byte muxTestModeActive;

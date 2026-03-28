@@ -17,7 +17,8 @@
 
 void setup(void);
 void loop(void);
-uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen);
+//[PJSC v1.10]uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen);
+uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen, uint8_t AFR);     //[PJSC v1.10]
 byte getVE1(void);
 byte getAdvance1(void);
 uint16_t calculatePWLimit();

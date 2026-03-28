@@ -489,8 +489,8 @@ void doUpdates(void)
     configPage10.vvtCLmaxDuty = configPage10.vvtCLmaxDuty << 1;
 
     //VVT2 added, so default values and disable it
-    configPage10.vvt2Enabled = 0;
-    configPage4.vvt2PWMdir = 0;
+    //[PJSC v1.10]configPage10.vvt2Enabled = 0;
+    //[PJSC v1.10]configPage4.vvt2PWMdir = 0;
     configPage10.TrigEdgeThrd = 0;
 
     //Old use as On/Off selection is removed, so change VVT mode to On/Off based on that

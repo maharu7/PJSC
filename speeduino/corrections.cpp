@@ -38,6 +38,9 @@ long PID_O2, PID_output, PID_AFRTarget;
 */
 PID egoPID(&PID_O2, &PID_output, &PID_AFRTarget, configPage6.egoKP, configPage6.egoKI, configPage6.egoKD, REVERSE);
 
+long PID_O2_2, PID_output2;  //[PJSC v1.10]
+PID egoPID2(&PID_O2_2, &PID_output2, &PID_AFRTarget, configPage6.egoKP, configPage6.egoKI, configPage6.egoKD, REVERSE); //[PJSC v1.10]
+
 byte activateMAPDOT; //The mapDOT value seen when the MAE was activated. 
 byte activateTPSDOT; //The tpsDOT value seen when the MAE was activated.
 
@@ -66,6 +69,14 @@ void initialiseCorrections(void)
   egoPID.SetMode(AUTOMATIC);
   egoPID.SetMode(MANUAL);
   egoPID.SetMode(AUTOMATIC);
+  //********** [PJSC v1.10] ***************
+  PID_output2 = 0L;
+  PID_O2_2 = 0L;
+
+  egoPID2.SetMode(AUTOMATIC);
+  egoPID2.SetMode(MANUAL);
+  egoPID2.SetMode(AUTOMATIC);
+  //********** [PJSC v1.10] ***************
 
   currentStatus.flexIgnCorrection = 0;
   currentStatus.egoCorrection = 100; //Default value of no adjustment must be set to avoid randomness on first correction cycle after startup
@@ -111,8 +122,8 @@ uint16_t correctionsFuel(void)
   result = correctionFloodClear();
   if (result != 100) { sumCorrections = div100(sumCorrections * result); }
 
-  currentStatus.egoCorrection = correctionAFRClosedLoop();
-  if (currentStatus.egoCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.egoCorrection); }
+//[PJSC v1.10]  currentStatus.egoCorrection = correctionAFRClosedLoop();
+//[PJSC v1.10]  if (currentStatus.egoCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.egoCorrection); }
 
   currentStatus.batCorrection = correctionBatVoltage();
   //******************************** [PJSC v1.10] ********************************
@@ -162,6 +173,12 @@ uint16_t correctionsFuel(void)
   byte dfcoTaperCorrection = correctionDFCOfuel();
   if (dfcoTaperCorrection == 0) { sumCorrections = 0; }
   else if (dfcoTaperCorrection != 100) { sumCorrections = div100(sumCorrections * dfcoTaperCorrection); }
+
+  //******************************** [PJSC v1.10] ********************************
+  currentStatus.egoCorrection = correctionAFRClosedLoop();
+  currentStatus.corrections2 = div100(sumCorrections * currentStatus.egoCorrection2);
+  if (currentStatus.egoCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.egoCorrection); }
+  //******************************** [PJSC v1.10] ********************************
 
   if(sumCorrections > 1500) { sumCorrections = 1500; } //This is the maximum allowable increase during cranking
   return (uint16_t)sumCorrections;
@@ -684,10 +701,12 @@ PID (Best suited to wideband sensors):
 byte correctionAFRClosedLoop(void)
 {
   byte AFRValue = 100U;
+  byte AFR2Value = 100U;    //[PJSC v1.10]
 
   if((configPage6.egoType > 0) && (BIT_CHECK(currentStatus.status1, BIT_STATUS1_DFCO) != 1  ) ) //egoType of 0 means no O2 sensor. If DFCO is active do not run the ego controllers to prevent iterator wind-up.
   {
     AFRValue = currentStatus.egoCorrection; //Need to record this here, just to make sure the correction stays 'on' even if the nextCycle count isn't ready
+    AFR2Value = currentStatus.egoCorrection2; //[PJSC v1.10]
     
     if(((uint16_t)(ignitionCount - AFRnextCycle)) < UINT16_HALF_RANGE) //Check whether ignitionCount has exceeded AFRnextCycle. This method prevents any issues when AFRnextCycle overflows but these variables cannot be more than UINT16_HALF_RANGE apart
     {
@@ -722,6 +741,27 @@ byte correctionAFRClosedLoop(void)
           }
           else { AFRValue = currentStatus.egoCorrection; } //Means we're already right on target
 
+          //************************************** [PJSC v1.10] *************************************************
+          if(currentStatus.O2_2 > currentStatus.afrTarget)
+          {
+            //Running lean
+            if(currentStatus.egoCorrection2 < (100 + configPage6.egoLimit) ) //Fuelling adjustment must be at most the egoLimit amount (up or down)
+            {
+              AFR2Value = (currentStatus.egoCorrection2 + 1); //Increase the fuelling by 1%
+            }
+            else { AFR2Value = currentStatus.egoCorrection2; } //Means we're at the maximum adjustment amount, so simply return that again
+          }
+          else if(currentStatus.O2_2 < currentStatus.afrTarget)
+          {
+            //Running Rich
+            if(currentStatus.egoCorrection2 > (100 - configPage6.egoLimit) ) //Fuelling adjustment must be at most the egoLimit amount (up or down)
+            {
+              AFR2Value = (currentStatus.egoCorrection2 - 1); //Decrease the fuelling by 1%
+            }
+            else { AFR2Value = currentStatus.egoCorrection2; } //Means we're at the maximum adjustment amount, so simply return that again
+          }
+          else { AFR2Value = currentStatus.egoCorrection2; } //Means we're already right on target
+          //************************************** [PJSC v1.10] *************************************************
         }
         else if(configPage6.egoAlgorithm == EGO_ALGORITHM_PID)
         {
@@ -736,16 +776,31 @@ byte correctionAFRClosedLoop(void)
           //currentStatus.egoCorrection = 100 + PID_output;
           if(PID_compute == true) { AFRValue = 100 + PID_output; }
           
+          //************************** [PJSC v1.10] ********************************************
+          egoPID2.SetOutputLimits((long)(-configPage6.egoLimit), (long)(configPage6.egoLimit));
+          egoPID2.SetTunings(configPage6.egoKP, configPage6.egoKI, configPage6.egoKD);
+          PID_O2_2 = (long)(currentStatus.O2_2);
+          bool PID_compute2 = egoPID2.Compute();
+          if(PID_compute2 == true) { AFR2Value = 100 + PID_output2; }
+          //************************** [PJSC v1.10] ********************************************
         }
-        else { AFRValue = 100; } // Occurs if the egoAlgorithm is set to 0 (No Correction)
+        //[PJSC v1.10]else { AFRValue = 100; } // Occurs if the egoAlgorithm is set to 0 (No Correction)
+        else { AFRValue = 100; AFR2Value = 100; }                                               //[PJSC v1.10] Occurs if the egoAlgorithm is set to 0 (No Correction)
       } //Multi variable check 
-      else { AFRValue = 100; } // If multivariable check fails disable correction
+      //[PJSC v1.10]else { AFRValue = 100; } // If multivariable check fails disable correction
+      else { AFRValue = 100; AFR2Value = 100; }                                                 //[PJSC v1.10] If multivariable check fails disable correction
     } //Ignition count check
   } //egoType
 
   //Final check to ensure within authority range (This can be needed if the user has lowered the authority limit)
   if(AFRValue < (100U - configPage6.egoLimit)) {AFRValue = (100U - configPage6.egoLimit); }
   if(AFRValue > (100U + configPage6.egoLimit)) {AFRValue = (100U + configPage6.egoLimit); }
+
+  //*************************** [PJSC v1.10] ***************************************************
+  if(AFR2Value < (100U - configPage6.egoLimit)) {AFR2Value = (100U - configPage6.egoLimit); }
+  if(AFR2Value > (100U + configPage6.egoLimit)) {AFR2Value = (100U + configPage6.egoLimit); }
+  currentStatus.egoCorrection2 = AFR2Value;
+  //*************************** [PJSC v1.10] ***************************************************
 
   return AFRValue; //Catch all (Includes when AFR target = current AFR
 }

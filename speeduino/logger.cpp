@@ -225,6 +225,9 @@ byte getTSLogEntry(uint16_t byteNum)
     case 168: statusValue = lowByte((int)(currentStatus.baro10)); break;
     case 169: statusValue = highByte((int)(currentStatus.baro10)); break;
     case 170: statusValue = misfireDetectionCount; break;
+    case 171: statusValue = currentStatus.egoCorrection; break; //Exhaust gas correction (%)
+    case 172: statusValue = lowByte(currentStatus.corrections2); break; //Total GammaE (%)
+    case 173: statusValue = highByte(currentStatus.corrections2); break; //Total GammaE (%)
     //****************** [PJSC v1.10] ******************
     default: statusValue = 0; // MISRA check
   }
@@ -384,6 +387,9 @@ int16_t getReadableLogEntry(uint16_t logIndex)
     case 114: statusValue = currentStatus.MAP10; break;
     case 115: statusValue = currentStatus.baro10; break;
     case 116: statusValue = misfireDetectionCount; break;
+    case 117: statusValue = currentStatus.egoCorrection; break; //Exhaust gas correction (%)
+    case 118: statusValue = lowByte(currentStatus.corrections2); break; //Total GammaE (%)
+    case 119: statusValue = highByte(currentStatus.corrections2); break; //Total GammaE (%)
    //****************** [PJSC v1.10] ******************
     default: statusValue = 0; // MISRA check
   }
@@ -556,6 +562,9 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 119: statusValue = lowByte(currentStatus.EMAP); break; //2 bytes for EMAP
     case 120: statusValue = highByte(currentStatus.EMAP); break;
     case 121: statusValue = currentStatus.fanDuty; break;
+    case 122: statusValue = currentStatus.egoCorrection; break; //Exhaust gas correction (%)
+    case 123: statusValue = lowByte(currentStatus.corrections2); break; //Total GammaE (%)
+    case 124: statusValue = highByte(currentStatus.corrections2); break; //Total GammaE (%)
     /* [PJSC v1.10] Omitto Ari conditoner controll
     case 122: statusValue = currentStatus.airConStatus; break;
     [PJSC v1.10] Omitto Ari conditoner controll */
@@ -577,7 +586,7 @@ bool is2ByteEntry(uint8_t key)
   // This array MUST remain in ascending order
   // !!!! WARNING: If any value above 255 is required in this array, changes MUST be made to is2ByteEntry() function !!!!
   //[PJSC v1.10]static constexpr byte PROGMEM fsIntIndex[] = {4, 14, 17, 22, 26, 28, 33, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 76, 78, 80, 82, 86, 88, 90, 93, 95, 99, 104, 111, 121, 125 };
-  static constexpr byte PROGMEM fsIntIndex[] = {4, 14, 17, 22, 26, 28, 33, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 76, 78, 80, 82, 86, 88, 90, 93, 95, 99, 104, 111, 121, 124, 130, 136, 138, 140, 142, 144, 146, 148, 150, 152, 154, 156, 158, 160, 162, 164, 166, 168 };  //[PJSC v1.10]
+  static constexpr byte PROGMEM fsIntIndex[] = {4, 14, 17, 22, 26, 28, 33, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 76, 78, 80, 82, 86, 88, 90, 93, 95, 99, 104, 111, 121, 124, 130, 136, 138, 140, 142, 144, 146, 148, 150, 152, 154, 156, 158, 160, 162, 164, 166, 168, 172 };  //[PJSC v1.10]
 
   unsigned int bot = 0U;
   unsigned int mid = _countof(fsIntIndex);

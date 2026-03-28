@@ -44,8 +44,8 @@ void pvOpenInterrupt(void);
 #define BOOST_PIN_HIGH()        (digitalWrite(pinBoost, HIGH))
 #define VVT1_PIN_LOW()          (digitalWrite(pinVVT_1, LOW))
 #define VVT1_PIN_HIGH()         (digitalWrite(pinVVT_1, HIGH))
-#define VVT2_PIN_LOW()          (digitalWrite(pinVVT_2, LOW))
-#define VVT2_PIN_HIGH()         (digitalWrite(pinVVT_2, HIGH))
+//[PJSC v1.10]#define VVT2_PIN_LOW()          (digitalWrite(pinVVT_2, LOW))
+//[PJSC v1.10]#define VVT2_PIN_HIGH()         (digitalWrite(pinVVT_2, HIGH))
 #define FAN_PIN_LOW()           (digitalWrite(pinFan, LOW))
 #define FAN_PIN_HIGH()          (digitalWrite(pinFan, HIGH))
 #define N2O_STAGE1_PIN_LOW()    (digitalWrite(configPage10.n2o_stage1_pin, LOW))
@@ -75,8 +75,8 @@ void pvOpenInterrupt(void);
 #define BOOST_PIN_HIGH()        ATOMIC() { *boost_pin_port |= (boost_pin_mask);  }
 #define VVT1_PIN_LOW()          ATOMIC() { *vvt1_pin_port &= ~(vvt1_pin_mask);   }
 #define VVT1_PIN_HIGH()         ATOMIC() { *vvt1_pin_port |= (vvt1_pin_mask);    }
-#define VVT2_PIN_LOW()          ATOMIC() { *vvt2_pin_port &= ~(vvt2_pin_mask);   }
-#define VVT2_PIN_HIGH()         ATOMIC() { *vvt2_pin_port |= (vvt2_pin_mask);    }
+//[PJSC v1.10]#define VVT2_PIN_LOW()          ATOMIC() { *vvt2_pin_port &= ~(vvt2_pin_mask);   }
+//[PJSC v1.10]#define VVT2_PIN_HIGH()         ATOMIC() { *vvt2_pin_port |= (vvt2_pin_mask);    }
 #define N2O_STAGE1_PIN_LOW()    ATOMIC() { *n2o_stage1_pin_port &= ~(n2o_stage1_pin_mask);  }
 #define N2O_STAGE1_PIN_HIGH()   ATOMIC() { *n2o_stage1_pin_port |= (n2o_stage1_pin_mask);   }
 #define N2O_STAGE2_PIN_LOW()    ATOMIC() { *n2o_stage2_pin_port &= ~(n2o_stage2_pin_mask);  }
@@ -118,8 +118,8 @@ void pvOpenInterrupt(void);
 
 #define VVT1_PIN_ON()     VVT1_PIN_HIGH();
 #define VVT1_PIN_OFF()    VVT1_PIN_LOW();
-#define VVT2_PIN_ON()     VVT2_PIN_HIGH();
-#define VVT2_PIN_OFF()    VVT2_PIN_LOW();
+//[PJSC v1.10]#define VVT2_PIN_ON()     VVT2_PIN_HIGH();
+//[PJSC v1.10]#define VVT2_PIN_OFF()    VVT2_PIN_LOW();
 #define VVT_TIME_DELAY_MULTIPLIER  50
 
 #define WMI_TANK_IS_EMPTY() ((configPage10.wmiEmptyEnabled) ? ((configPage10.wmiEmptyPolarity) ? digitalRead(pinWMIEmpty) : !digitalRead(pinWMIEmpty)) : 1)
