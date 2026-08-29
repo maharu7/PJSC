@@ -3805,6 +3805,10 @@ void setPinMapping(byte boardID)
   triggerSec_pin_mask = digitalPinToBitMask(pinTrigger2);
   triggerThird_pin_port = portInputRegister(digitalPinToPort(pinTrigger3));
   triggerThird_pin_mask = digitalPinToBitMask(pinTrigger3);
+  triggerCaptureDuty_pin_port = portInputRegister(digitalPinToPort(pinExtTrigger));     //[PJSC v1.10] For new capture duty pulse
+  triggerCaptureDuty_pin_mask = digitalPinToBitMask(pinExtTrigger);                     //[PJSC v1.10] For new capture duty pulse
+  triggerCaptureDuty2_pin_port = portInputRegister(digitalPinToPort(pinCaptureDuty1));  //[PJSC v1.10] For new capture duty pulse
+  triggerCaptureDuty2_pin_mask = digitalPinToBitMask(pinCaptureDuty1);                  //[PJSC v1.10] For new capture duty pulse
 
   flex_pin_port = portInputRegister(digitalPinToPort(pinFlex));
   flex_pin_mask = digitalPinToBitMask(pinFlex);
@@ -4379,8 +4383,10 @@ void initialiseTriggers(void)
       getCrankAngle = getCrankAngle_KATANA;
       triggerSetEndTeeth = triggerSetEndTeeth_KATANA;
 
-      primaryTriggerEdge = CHANGE;
-      attachInterrupt(triggerInterrupt, triggerHandler, primaryTriggerEdge);
+      if(configPage4.TrigEdge == 0) { primaryTriggerEdge = false; } // set as boolean so we can directly use it in decoder.
+      else { primaryTriggerEdge = true; }
+      
+      attachInterrupt(triggerInterrupt, triggerHandler, CHANGE); //Hardcoded change, the primaryTriggerEdge will be used in the decoder to select if it`s an inverted or non-inverted signal.
 
       if(configPage15.useMAPasSync == 1)
       {
@@ -4390,7 +4396,6 @@ void initialiseTriggers(void)
         else { secondaryTriggerEdge = FALLING; }
         attachInterrupt(triggerInterrupt2, triggerSecondaryHandler, secondaryTriggerEdge);
       }
-
       break;
 
     case DECODER_NSR250R:
@@ -4426,20 +4431,6 @@ void initialiseTriggers(void)
 
       attachInterrupt(triggerInterrupt, triggerHandler, primaryTriggerEdge);
       attachInterrupt(triggerInterrupt2, triggerSecondaryHandler, secondaryTriggerEdge);
-
-      break;
-
-    case DECODER_KATANA2:
-      triggerSetup_KATANA2();
-      triggerHandler = triggerPri_KATANA2;
-      getRPM = getRPM_KATANA2;
-      getCrankAngle = getCrankAngle_KATANA2;
-      triggerSetEndTeeth = triggerSetEndTeeth_KATANA2;
-
-      if(configPage4.TrigEdge == 0) { primaryTriggerEdge = true; } // set as boolean so we can directly use it in decoder.
-      else { primaryTriggerEdge = false; }
-      
-      attachInterrupt(triggerInterrupt, triggerHandler, CHANGE); //Hardcoded change, the primaryTriggerEdge will be used in the decoder to select if it`s an inverted or non-inverted signal.
       break;
     //******************** [PJSC v1.10] ********************
 
@@ -4740,9 +4731,9 @@ void initialiseExternalTrigger(void)     //[PJSC] For External Trigger Interruot
   {
     switch (configPage15.exTrigModeSelect) {
       case EXTRIG_SPARK_CAPTURE:
-        currentStatus.extTriggerAngle = 0;
-        currentStatus.extTriggerRPM = 0;
-        currentStatus.extTriggerLoad = 0;
+        extTriggerAngle = 0;
+        extTriggerRPM = 0;
+        extTriggerLoad = 0;
         if(configPage15.externalTrigEdge == 0) { attachInterrupt(extTriggerInterrupt, captureExtTrigger, RISING); }
         else { attachInterrupt(extTriggerInterrupt, captureExtTrigger, FALLING); }
         break;
@@ -4753,7 +4744,7 @@ void initialiseExternalTrigger(void)     //[PJSC] For External Trigger Interruot
         break;
 
       case EXTRIG_MISFIRE_DETECTION:
-        currentStatus.extTriggerRPM = 0;
+        extTriggerRPM = 0;
         if(configPage15.externalTrigEdge == 0) { attachInterrupt(extTriggerInterrupt, misfireDetect, RISING); }
         else { attachInterrupt(extTriggerInterrupt, misfireDetect, FALLING); }
         break;
@@ -4768,19 +4759,21 @@ void initialiseExternalTrigger(void)     //[PJSC] For External Trigger Interruot
 
       case EXTRIG_PWM_CAPT:
         dutyON_time = dutyOFF_time = micros();
-        currentStatus.dutyCaptureCount = 0;
-        currentStatus.dutyRatio = 0;
-        currentStatus.dutyFreq = 0;
+        dutyCaptureCount = 0;
+        dutyRatio = 0;
+        dutyFreq = 0;
 
-        if(configPage15.dutyPulseOnLevel == 0)
+        if(READ_DUTYCAPTURE_PIN() == true)
         {
-          attachInterrupt(extTriggerInterrupt, captureDutyPulseONtime, RISING);
-          attachInterrupt(extTriggerInterrupt, captureDutyPulseOFFtime, FALLING);
+          if(configPage15.dutyPulseOnLevel == 0)  { dutyRatio = 100; }
+          else                                    { dutyRatio = 0;   }
         }
         else {
-          attachInterrupt(extTriggerInterrupt, captureDutyPulseONtime, FALLING);
-          attachInterrupt(extTriggerInterrupt, captureDutyPulseOFFtime, RISING);
+          if(configPage15.dutyPulseOnLevel == 0)  { dutyRatio = 0;   }
+          else                                    { dutyRatio = 100; }
         }
+
+        attachInterrupt(extTriggerInterrupt, captureDutyPulse, CHANGE);
         break;
 
       case EXTRIG_SMART_SHIFT:
@@ -4788,7 +4781,7 @@ void initialiseExternalTrigger(void)     //[PJSC] For External Trigger Interruot
         break;
 
       default:
-        currentStatus.extTriggerAngle = 0;
+        extTriggerAngle = 0;
         if(configPage15.externalTrigEdge == 0) { attachInterrupt(extTriggerInterrupt, captureExtTrigger, RISING); }
         else { attachInterrupt(extTriggerInterrupt, captureExtTrigger, FALLING); }
         break;
@@ -4835,9 +4828,9 @@ void initialiseCaptureDutyPulse(void)     //[PJSC] For capturing duty pulse
   {
     switch (configPage15.exTrigModeSelect2) {
       case EXTRIG_SPARK_CAPTURE:
-        currentStatus.extTriggerAngle2 = 0;
-        currentStatus.extTriggerRPM = 0;
-        currentStatus.extTriggerLoad = 0;
+        extTriggerAngle2 = 0;
+        extTriggerRPM = 0;
+        extTriggerLoad = 0;
         if(configPage15.externalTrigEdge2 == 0) { attachInterrupt(captureDutyPulseInterrupt, captureExtTrigger2, RISING); }
         else { attachInterrupt(captureDutyPulseInterrupt, captureExtTrigger2, FALLING); }
         break;
@@ -4848,7 +4841,7 @@ void initialiseCaptureDutyPulse(void)     //[PJSC] For capturing duty pulse
         break;
 
       case EXTRIG_MISFIRE_DETECTION:
-        currentStatus.extTriggerRPM = 0;
+        extTriggerRPM = 0;
         if(configPage15.externalTrigEdge2 == 0) { attachInterrupt(captureDutyPulseInterrupt, misfireDetect, RISING); }
         else { attachInterrupt(captureDutyPulseInterrupt, misfireDetect, FALLING); }
         break;
@@ -4864,19 +4857,21 @@ void initialiseCaptureDutyPulse(void)     //[PJSC] For capturing duty pulse
 
       case EXTRIG_PWM_CAPT:
         dutyON_time2 = dutyOFF_time2 = micros();
-        currentStatus.dutyCaptureCount2 = 0;
-        currentStatus.dutyRatio2 = 0;
-        currentStatus.dutyFreq2 = 0;
+        dutyCaptureCount2 = 0;
+        dutyRatio2 = 0;
+        dutyFreq2 = 0;
 
-        if(configPage15.dutyPulseOnLevel2 == 0)
+        if(READ_DUTYCAPTURE2_PIN() == true)
         {
-          attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseONtime2, RISING);
-          attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseOFFtime2, FALLING);
+          if(configPage15.dutyPulseOnLevel2 == 0)  { dutyRatio2 = 100; }
+          else                                     { dutyRatio2 = 0;   }
         }
         else {
-          attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseONtime2, FALLING);
-          attachInterrupt(captureDutyPulseInterrupt, captureDutyPulseOFFtime2, RISING);
+          if(configPage15.dutyPulseOnLevel2 == 0)  { dutyRatio2 = 0;   }
+          else                                     { dutyRatio2 = 100; }
         }
+
+        attachInterrupt(captureDutyPulseInterrupt, captureDutyPulse2, CHANGE);
         break;
 
       case EXTRIG_SMART_SHIFT:
@@ -4884,7 +4879,7 @@ void initialiseCaptureDutyPulse(void)     //[PJSC] For capturing duty pulse
         break;
 
       default:
-        currentStatus.extTriggerAngle2 = 0;
+        extTriggerAngle2 = 0;
         if(configPage15.externalTrigEdge2 == 0) { attachInterrupt(captureDutyPulseInterrupt, captureExtTrigger2, RISING); }
         else { attachInterrupt(captureDutyPulseInterrupt, captureExtTrigger2, FALLING); }
         break;
@@ -4922,19 +4917,11 @@ void initialiseCaptureDutyPulse2(void)    //[PJSC] For capturing duty pulse
   detachInterrupt(captureDutyPulseInterrupt2);
 
   dutyON_time2 = dutyOFF_time2 = micros();
-  currentStatus.dutyCaptureCount2 = 0;
-  currentStatus.dutyRatio2 = 0;
-  currentStatus.dutyFreq2 = 0;
+  dutyCaptureCount2 = 0;
+  dutyRatio2 = 0;
+  dutyFreq2 = 0;
 
-  if(configPage15.dutyPulseOnLevel2 == 0)
-  {
-    attachInterrupt(captureDutyPulseInterrupt2, captureDutyPulseONtime2, RISING);
-    attachInterrupt(captureDutyPulseInterrupt2, captureDutyPulseOFFtime2, FALLING);
-  }
-  else {
-    attachInterrupt(captureDutyPulseInterrupt2, captureDutyPulseONtime2, FALLING);
-    attachInterrupt(captureDutyPulseInterrupt2, captureDutyPulseOFFtime2, RISING);
-  }
+  attachInterrupt(captureDutyPulseInterrupt2, captureDutyPulse2, CHANGE);
 }
 //***************************************************************************************************************************
 

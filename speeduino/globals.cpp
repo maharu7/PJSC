@@ -112,6 +112,11 @@ volatile PORT_TYPE *triggerThird_pin_port;
 volatile PINMASK_TYPE triggerThird_pin_mask;
 
 //****************** [PJSC v1.10] ******************
+volatile PORT_TYPE *triggerCaptureDuty_pin_port;
+volatile PINMASK_TYPE triggerCaptureDuty_pin_mask;
+volatile PORT_TYPE *triggerCaptureDuty2_pin_port;
+volatile PINMASK_TYPE triggerCaptureDuty2_pin_mask;
+
 byte extTriggerInterrupt;
 byte captureDutyPulseInterrupt;
 byte captureDutyPulseInterrupt2;

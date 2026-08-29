@@ -626,15 +626,20 @@ extern volatile PINMASK_TYPE triggerSec_pin_mask;
 extern volatile PORT_TYPE *triggerThird_pin_port;
 extern volatile PINMASK_TYPE triggerThird_pin_mask;
 
-extern byte triggerInterrupt;
-extern byte triggerInterrupt2;
-extern byte triggerInterrupt3;
-
 //****************** [PJSC v1.10] ******************
+extern volatile PORT_TYPE *triggerCaptureDuty_pin_port;
+extern volatile PINMASK_TYPE triggerCaptureDuty_pin_mask;
+extern volatile PORT_TYPE *triggerCaptureDuty2_pin_port;
+extern volatile PINMASK_TYPE triggerCaptureDuty2_pin_mask;
+
 extern byte extTriggerInterrupt;
 extern byte captureDutyPulseInterrupt;
 extern byte captureDutyPulseInterrupt2;
 //****************** [PJSC v1.10] ******************
+
+extern byte triggerInterrupt;
+extern byte triggerInterrupt2;
+extern byte triggerInterrupt3;
 
 extern byte fpPrimeTime; //The time (in seconds, based on currentStatus.secl) that the fuel pump started priming
 extern uint8_t softLimitTime; //The time (in 0.1 seconds, based on seclx10) that the soft limiter started
@@ -817,19 +822,9 @@ struct statuses {
   unsigned long AcclAdvEndTime;
   long MAP10;
   long baro10;
-  int dutyFreq;
-  int dutyFreq2;
-  int dutyRatio;
-  int dutyRatio2;
-  int extTriggerAngle;
-  int extTriggerAngle_last;
-  int extTriggerAngle2;
-  int extTriggerAngle_last2;
   int16_t fuelLoad3;
   int16_t fuelLoad4;
-  int16_t testCnt;
-  uint16_t extTriggerRPM;
-  uint16_t extTriggerLoad;
+  uint16_t testCnt;
   uint16_t EGTADC;
   uint16_t corrections2;
   byte egoCorrection2;
@@ -839,13 +834,6 @@ struct statuses {
   unsigned int PVPositionADC;
   byte PVPosition;
   byte PVTargetPosition;
-  //byte PVduty;
-  byte dutyCaptureCount;
-  byte dutyCaptureCount2;
-  //byte afr_analyze1;
-  //byte afr_analyze2;
-  //byte afr_analyze3;
-  //byte afr_analyze4;
   byte inj1VE;
   byte inj2VE;
   byte inj3VE;
@@ -856,6 +844,23 @@ struct statuses {
   bool mapSelectSw;
   bool tpsDOTdfcoActive;
   bool acclAdvActive;
+  //int dutyFreq;
+  //int dutyFreq2;
+  //int dutyRatio;
+  //int dutyRatio2;
+  //int extTriggerAngle;
+  //int extTriggerAngle_last;
+  //int extTriggerAngle2;
+  //int extTriggerAngle_last2;
+  //uint16_t extTriggerRPM;
+  //uint16_t extTriggerLoad;
+  //byte PVduty;
+  //byte dutyCaptureCount;
+  //byte dutyCaptureCount2;
+  //byte afr_analyze1;
+  //byte afr_analyze2;
+  //byte afr_analyze3;
+  //byte afr_analyze4;
 //****************** [PJSC v1.10] ******************
 };
 
@@ -1709,7 +1714,8 @@ struct config15 {
   byte acclAdvThresh;                //125
   byte acclAdvEnabled: 1;            //126
   byte fixedSparkDuration: 1;
-  byte unused15_126: 6;
+  byte fixedTriggerIgnition: 1;
+  byte unused15_126: 5;
 
   byte testop_inj: 2;                //127
   byte testop_coil: 2;
@@ -1792,12 +1798,8 @@ struct config15 {
   byte PVCloseRPM;                   //170
   byte PVOpenRPM;                    //171
 
-  //byte gap1M;                        //168
-  //byte gap1N;                        //169
-  //byte gap2M;                        //170
-  //byte gap2N;                        //171
-  //byte gap3M;                        //172
-  //byte gap3N;                        //173
+  //byte gap1M;                        //172
+  //byte gap1N;                        //173
   //byte Unused15_187[5];              //174
 //****************************** [PJSC v1.10] ******************************
 

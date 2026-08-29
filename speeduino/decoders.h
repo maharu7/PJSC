@@ -7,10 +7,14 @@
   #define READ_PRI_TRIGGER() ((*triggerPri_pin_port & triggerPri_pin_mask) ? true : false)
   #define READ_SEC_TRIGGER() ((*triggerSec_pin_port & triggerSec_pin_mask) ? true : false)
   #define READ_THIRD_TRIGGER() ((*triggerThird_pin_port & triggerThird_pin_mask) ? true : false)
+  #define READ_DUTYCAPTURE_PIN() ((*triggerCaptureDuty_pin_port & triggerCaptureDuty_pin_mask) ? true : false)      //[PJSC v1.10] For new Duty pulse capture
+  #define READ_DUTYCAPTURE2_PIN() ((*triggerCaptureDuty2_pin_port & triggerCaptureDuty2_pin_mask) ? true : false)   //[PJSC v1.10] For new Duty pulse capture
 #else
   #define READ_PRI_TRIGGER() digitalRead(pinTrigger)
   #define READ_SEC_TRIGGER() digitalRead(pinTrigger2)
-  #define READ_THIRD_TRIGGER() digitalRead(pinTrigger3)  
+  #define READ_THIRD_TRIGGER() digitalRead(pinTrigger3)
+  #define READ_DUTYCAPTURE_PIN() digitalRead(pinExtTrigger)       //[PJSC v1.10] For new Duty pulse capture
+  #define READ_DUTYCAPTURE2_PIN() digitalRead(pinCaptureDuty1)    //[PJSC v1.10] For new Duty pulse capture
 #endif
 
 #define DECODER_MISSING_TOOTH     0
@@ -48,7 +52,6 @@
 #define DECODER_KATANA            28       //[PJSC v1.10]
 #define DECODER_NSR250R           29       //[PJSC v1.10]
 #define DECODER_RGV250            30       //[PJSC v1.10]
-#define DECODER_KATANA2           31       //[PJSC v1.10]
 
 #define BIT_DECODER_2ND_DERIV           0 //The use of the 2nd derivative calculation is limited to certain decoders. This is set to either true or false in each decoders setup routine
 #define BIT_DECODER_IS_SEQUENTIAL       1 //Whether or not the decoder supports sequential operation
@@ -301,13 +304,6 @@ void triggerSec_RGV250(void);
 uint16_t getRPM_RGV250(void);
 int getCrankAngle_RGV250(void);
 void triggerSetEndTeeth_RGV250(void);
-
-void triggerSetup_KATANA2(void);
-void triggerPri_KATANA2(void);
-void triggerSec_KATANA2(void);
-uint16_t getRPM_KATANA2(void);
-int getCrankAngle_KATANA2(void);
-void triggerSetEndTeeth_KATANA2(void);
 //****************** [PJSC v1.10] ******************
 
 /**
@@ -332,15 +328,13 @@ extern void (*triggerSetEndTeeth)(void); //Pointer to the triggerSetEndTeeth fun
 
 void captureExtTrigger(void);
 void captureExtTrigger2(void);
-void captureDutyPulseONtime(void);
-void captureDutyPulseOFFtime(void);
-void captureDutyPulseONtime2(void);
-void captureDutyPulseOFFtime2(void);
+void captureDutyPulse(void);
+void captureDutyPulse2(void);
 
 void misfireDetect();
 
+//extern volatile uint16_t indexRatio;
 extern int16_t toothNextGapRatios[13];
-extern int16_t maxGap3Angle;
 extern unsigned long dutyON_time;
 extern unsigned long dutyONlast_time;
 extern unsigned long dutyOFF_time;
@@ -350,10 +344,10 @@ extern unsigned long dutyONlast_time2;
 extern unsigned long dutyOFF_time2;
 extern unsigned long dutyOFFlast_time2;
 
-extern volatile uint16_t maxGap3Ratio;
-extern volatile unsigned long curGap5;
-//extern volatile unsigned long flipGap;
 extern volatile unsigned long nextGap;
+extern volatile unsigned long curGap3;
+extern volatile unsigned long curGap4;
+extern volatile unsigned long curGap5;
 extern volatile unsigned long targetGap3;
 extern volatile unsigned long targetGap5;
 extern volatile unsigned long lastGap3;
@@ -362,15 +356,25 @@ extern volatile unsigned long lastIgnTime;
 extern volatile unsigned long ignGap;
 extern volatile unsigned long toothLastMinusTwoToothTime;
 extern volatile unsigned long toothLastMinusThreeToothTime;
+extern volatile uint16_t extTriggerRPM;
+extern volatile uint16_t extTriggerLoad;
+extern volatile int dutyFreq;
+extern volatile int dutyFreq2;
+extern volatile int dutyRatio;
+extern volatile int dutyRatio2;
+extern volatile int extTriggerAngle;
+extern volatile int extTriggerAngle_last;
+extern volatile int extTriggerAngle2;
+extern volatile int extTriggerAngle_last2;
+extern volatile byte dutyCaptureCount;
+extern volatile byte dutyCaptureCount2;
 extern volatile byte angleRef_tooth;
 extern volatile byte angleRef_tooth2;
-extern volatile byte maxGap3_tooth;
-extern volatile byte maxGap3Ratio_tooth;
-extern volatile byte initialRotationToothCount;
 extern volatile byte misfireDetectionCount;
 extern volatile bool preSync;
-extern volatile bool preSyncLoss;
 extern volatile bool firstSyncDetect;
+extern volatile bool fixedIgnitionStart;
+extern volatile bool preSyncLoss;
 //****************** [PJSC v1.10] ******************
 
 extern volatile unsigned long curTime;

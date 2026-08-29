@@ -249,7 +249,7 @@ byte correctionASE(void)
   //2) Make sure we're not still cranking
   if( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) != true )
   {
-    if ( BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ) || (currentStatus.ASEValue == 0) )
+    if ( BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ) || (currentStatus.ASEValue <= 1) )
     {
       if ( (currentStatus.runSecs < (table2D_getValue(&ASECountTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET))) && !(BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) )
       {
@@ -275,7 +275,7 @@ byte correctionASE(void)
       //Safety checks
       if(ASEValue > UINT8_MAX) { ASEValue = UINT8_MAX; }
       
-      if(ASEValue < 0) { ASEValue = 0; }
+      if(ASEValue < 1) { ASEValue = 1; } //Must be at least 1 to prevent divid by 0 issues
       ASEValue = (byte)ASEValue;
     }
   }
@@ -1041,7 +1041,7 @@ uint8_t _calculateKnockRecovery(uint8_t curKnockRetard)
     //Calculate how many recovery steps have occurred since the 
     uint32_t timeInRecovery = (micros() - knockStartTime) - (configPage10.knock_duration * 100000UL);
     uint8_t recoverySteps = timeInRecovery / (configPage10.knock_recoveryStepTime * 100000UL);
-    int8_t recoveryTimingAdj = 0;
+    int16_t recoveryTimingAdj = 0;
     if(recoverySteps > knockLastRecoveryStep) 
     { 
       recoveryTimingAdj = (recoverySteps - knockLastRecoveryStep) * configPage10.knock_recoveryStep;
@@ -1113,6 +1113,9 @@ int8_t correctionKnockTiming(int8_t advance)
   {
     if(BIT_CHECK(currentStatus.status5, BIT_STATUS5_KNOCK_ACTIVE))
     {
+      //Knock retard is currently active already.
+      tmpKnockRetard = currentStatus.knockRetard;
+      
       //Check if additional knock events occurred
       //Additional knock events are when the step time has passed and the voltage remains above the threshold
       if((micros() - knockStartTime) > (configPage10.knock_stepTime * 1000UL))
@@ -1177,7 +1180,8 @@ int8_t correctionDFCOignition(int8_t advance)
 uint16_t correctionsDwell(uint16_t dwell)
 {
   uint16_t tempDwell = dwell;
-  uint16_t sparkDur_uS = (configPage4.sparkDur * 100); //Spark duration is in mS*10. Multiple it by 100 to get spark duration in uS
+  //[PJSC v1.10]uint16_t sparkDur_uS = (configPage4.sparkDur * 100); //Spark duration is in mS*10. Multiple it by 100 to get spark duration in uS
+  uint16_t sparkDur_uS = (configPage4.sparkDur * 10); //[PJSC v1.10]Spark duration is in mS*100. Multiple it by 10 to get spark duration in uS
   if(currentStatus.actualDwell == 0) { currentStatus.actualDwell = tempDwell; } //Initialise the actualDwell value if this is the first time being called
 
   //**************************************************************************************************************************
@@ -1226,7 +1230,8 @@ uint16_t correctionsDwell(uint16_t dwell)
       if( dwellPerRevolution > (revolutionTime * 2) )
       {
         //Possibly need some method of reducing spark duration here as well, but this is a start
-        tempDwell = (2 * revolutionTime / pulsesPerRevolution) - (configPage4.sparkDur * 100);
+        //[PJSC v1.10]tempDwell = (2 * revolutionTime / pulsesPerRevolution) - (configPage4.sparkDur * 100);
+        tempDwell = (2 * revolutionTime / pulsesPerRevolution) - (configPage4.sparkDur * 10);   //[PJSC v1.10]
       }
     }
     else
@@ -1234,7 +1239,8 @@ uint16_t correctionsDwell(uint16_t dwell)
       if(dwellPerRevolution > revolutionTime)
       {
         //Possibly need some method of reducing spark duration here as well, but this is a start
-        tempDwell = (revolutionTime / pulsesPerRevolution) - (configPage4.sparkDur * 100);
+        //[PJSC v1.10]tempDwell = (revolutionTime / pulsesPerRevolution) - (configPage4.sparkDur * 100);
+        tempDwell = (revolutionTime / pulsesPerRevolution) - (configPage4.sparkDur * 10);   //[PJSC v1.10]
       }
     }
 //  }
@@ -1339,11 +1345,11 @@ int8_t correctionAccelAdvance(int8_t advance)
           }
         }
 
-        currentStatus.accelAdvance = advanceAcclAdjust;
+        currentStatus.accelAdvance = advanceAcclAdjust / 10;
       }
     }
 
-    advance = advance + (advanceAcclAdjust / 10);
+    advance = advance + currentStatus.accelAdvance;
   }
 
   return advance;

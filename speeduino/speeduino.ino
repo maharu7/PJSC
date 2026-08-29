@@ -214,11 +214,11 @@ void __attribute__((always_inline)) loop(void)
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_1KHZ);
       readMAP();
-      if( (configPage2.pinMapping >= 71) && (configPage2.pinMapping <= 75) )                  //[PJSC v1.10] For PV control
-      {                                                                                       //[PJSC v1.10] For PV control
-        readPVPosition();                                                                     //[PJSC v1.10] For PV control
-        PvControl();                                                                          //[PJSC v1.10] For PV control
-      }                                                                                       //[PJSC v1.10] For PV control
+      if( (configPage15.PVControlType == PV_TYPE_DISABLE) && (configPage2.pinMapping >= 71) && (configPage2.pinMapping <= 75) ) //[PJSC v1.10] For PV control
+      {                                                                                                                         //[PJSC v1.10] For PV control
+        readPVPosition();                                                                                                       //[PJSC v1.10] For PV control
+        PvControl();                                                                                                            //[PJSC v1.10] For PV control
+      }                                                                                                                         //[PJSC v1.10] For PV control
     }
     if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_200HZ))
     {

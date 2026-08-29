@@ -48,7 +48,8 @@ void doUpdates(void)
     configPage9.realtime_base_address = 336;
 
     //There was a bad value in the May base tune for the spark duration setting, fix it here if it's a problem
-    if(configPage4.sparkDur == UINT8_MAX) { configPage4.sparkDur = 10; }
+    //[PJSC v1.10]if(configPage4.sparkDur == UINT8_MAX) { configPage4.sparkDur = 10; }
+    if(configPage4.sparkDur == UINT8_MAX) { configPage4.sparkDur = 100; }   //[PJSC v1.10]
 
     writeAllConfig();
     storeEEPROMVersion(4);

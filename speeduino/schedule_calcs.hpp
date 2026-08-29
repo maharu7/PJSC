@@ -43,7 +43,7 @@ static inline void calculateIgnitionAngle(const uint16_t dwellAngle, const uint1
   //******************** [PJSC v1.10] ********************
   if( configPage15.fixedSparkDuration )
   {
-    uint16_t sparkDur_uS = (configPage4.sparkDur * 100); //Spark duration is in mS*10. Multiple it by 100 to get spark duration in uS
+    uint16_t sparkDur_uS = (configPage4.sparkDur * 10); //Spark duration is in mS*100. Multiple it by 10 to get spark duration in uS
     *pStartAngle = (int16_t)(channelIgnDegrees==0U ? (uint16_t)CRANK_ANGLE_MAX_IGN : channelIgnDegrees) - (int16_t)advance;
     if(*pStartAngle > CRANK_ANGLE_MAX_IGN) {*pStartAngle -= CRANK_ANGLE_MAX_IGN;}
     *pEndAngle = *pStartAngle + timeToAngleDegPerMicroSec(sparkDur_uS);
