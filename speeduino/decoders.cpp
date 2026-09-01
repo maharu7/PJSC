@@ -6166,7 +6166,6 @@ void triggerPri_KATANA(void)
         toothOneMinusOneTime = toothOneTime;
         toothOneTime = curTime;
       }
-
       // Alternative sync detection via gap pattern
       if( firstSyncDetect == false )
       {
@@ -6209,9 +6208,9 @@ void triggerPri_KATANA(void)
         targetGap2 = lastGap * 8 - ((lastGap * (12000 - rpm)) >> 11);
       }
       else if (rpm < 14000){
-        targetGap2 = lastGap * 14- ((lastGap * (14000 - rpm)) >> 9);
+        targetGap2 = lastGap * 14 - ((lastGap * (14000 - rpm)) >> 9);
       }
-      else{
+      else {
         targetGap2 = lastGap * 18;
       }
 
@@ -6263,8 +6262,8 @@ void triggerPri_KATANA(void)
 
       if( ((toothCurrentCount == angleRef_tooth) || (toothCurrentCount == angleRef_tooth2)) && (currentStatus.hasSync == true) ) 
       {
-        toothLastThirdToothTime = (curTime + toothLastToothTime) >> 1;
-        //toothLastThirdToothTime = curTime;
+        //toothLastThirdToothTime = (curTime + toothLastToothTime) >> 1;
+        toothLastThirdToothTime = curTime;
         BIT_SET(decoderState, BIT_DECODER_TOOTH_ANG_CORRECT);
       }
 
@@ -6289,8 +6288,8 @@ void triggerPri_KATANA(void)
       if( toothLastToothTime == 0 ){ triggerFilterTime = 0; }
       else
       {
-        nextGap = (curGap * toothNextGapRatios[12]) >> MULTIPLY_128;
-        nextGap = nextGap >> 5;
+        nextGap = (curGap * toothNextGapRatios[12]) >> (MULTIPLY_128 + 5);
+        //nextGap = nextGap >> 5;
         setFilter(nextGap);
       }
 
@@ -6520,21 +6519,22 @@ int getCrankAngle_KATANA(void)
     //Grab some variables that are used in the trigger code and assign them to temp variables.
     noInterrupts();
     lastCrankAngleCalc = micros(); //micros() is no longer interrupt safe
+    interrupts();
+
     if( angleRef_tooth < angleRef_tooth2 )
     {
-      if( (tempToothCurrentCount >= angleRef_tooth) && (tempToothCurrentCount < angleRef_tooth2) ){ crankAngle = ((toothAngles[angleRef_tooth] + toothAngles[angleRef_tooth - 1]) >> 1) + configPage4.triggerAngle; }
-      else{ crankAngle = ((toothAngles[angleRef_tooth2] + toothAngles[angleRef_tooth2 - 1]) >> 1) + configPage4.triggerAngle; }
-      //if( (tempToothCurrentCount >= angleRef_tooth) && (tempToothCurrentCount < angleRef_tooth2) ){ crankAngle = toothAngles[angleRef_tooth] + configPage4.triggerAngle; }
-      //else{ crankAngle = toothAngles[angleRef_tooth2] + configPage4.triggerAngle; }
+      //if( (tempToothCurrentCount >= angleRef_tooth) && (tempToothCurrentCount < angleRef_tooth2) ){ crankAngle = ((toothAngles[angleRef_tooth] + toothAngles[angleRef_tooth - 1]) >> 1) + configPage4.triggerAngle; }
+      //else{ crankAngle = ((toothAngles[angleRef_tooth2] + toothAngles[angleRef_tooth2 - 1]) >> 1) + configPage4.triggerAngle; }
+      if( (tempToothCurrentCount >= angleRef_tooth) && (tempToothCurrentCount < angleRef_tooth2) ){ crankAngle = toothAngles[angleRef_tooth] + configPage4.triggerAngle; }
+      else{ crankAngle = toothAngles[angleRef_tooth2] + configPage4.triggerAngle; }
     }
     else
     {
-      if( (tempToothCurrentCount >= angleRef_tooth2) && (tempToothCurrentCount < angleRef_tooth) ){ crankAngle = ((toothAngles[angleRef_tooth2] + toothAngles[angleRef_tooth2 - 1]) >> 1) + configPage4.triggerAngle; }
-      else{ crankAngle = ((toothAngles[angleRef_tooth] + toothAngles[angleRef_tooth - 1]) >> 1) + configPage4.triggerAngle; }
-      //if( (tempToothCurrentCount >= angleRef_tooth2) && (tempToothCurrentCount < angleRef_tooth) ){ crankAngle = toothAngles[angleRef_tooth2] + configPage4.triggerAngle; }
-      //else{ crankAngle = toothAngles[angleRef_tooth] + configPage4.triggerAngle; }
+      //if( (tempToothCurrentCount >= angleRef_tooth2) && (tempToothCurrentCount < angleRef_tooth) ){ crankAngle = ((toothAngles[angleRef_tooth2] + toothAngles[angleRef_tooth2 - 1]) >> 1) + configPage4.triggerAngle; }
+      //else{ crankAngle = ((toothAngles[angleRef_tooth] + toothAngles[angleRef_tooth - 1]) >> 1) + configPage4.triggerAngle; }
+      if( (tempToothCurrentCount >= angleRef_tooth2) && (tempToothCurrentCount < angleRef_tooth) ){ crankAngle = toothAngles[angleRef_tooth2] + configPage4.triggerAngle; }
+      else{ crankAngle = toothAngles[angleRef_tooth] + configPage4.triggerAngle; }
     }
-    interrupts();
     
     //Estimate the number of degrees travelled since the last tooth}
     elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
