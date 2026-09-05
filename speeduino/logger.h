@@ -13,7 +13,7 @@
 
 #ifndef UNIT_TEST // Scope guard for unit testing
 //[PJSC v1.10]  #define LOG_ENTRY_SIZE      130 /**< The size of the live data packet. This MUST match ochBlockSize setting in the ini file */
-  #define LOG_ENTRY_SIZE      171        //[PJSC v1.10]
+  #define LOG_ENTRY_SIZE      167        //[PJSC v1.10]
 #else
   #define LOG_ENTRY_SIZE      1 /**< The size of the live data packet. This MUST match ochBlockSize setting in the ini file */
 #endif

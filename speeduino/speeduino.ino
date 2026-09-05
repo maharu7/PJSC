@@ -1185,7 +1185,8 @@ void __attribute__((always_inline)) loop(void)
 #endif
 
 #if defined(USE_IGN_REFRESH)
-        if( (ignitionSchedule1.Status == RUNNING) && (ignition1EndAngle > crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
+        //[PJSC v1.10]if( (ignitionSchedule1.Status == RUNNING) && (ignition1EndAngle > crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
+        if( (ignitionSchedule1.Status == RUNNING) && (ignition1EndAngle > crankAngle) && (configPage4.StgCycles == 0) && ((configPage2.perToothIgn != true) || (configPage4.TrigPattern == DECODER_KATANA)) )  //[PJSC v1.10]
         {
           unsigned long uSToEnd = 0;
 

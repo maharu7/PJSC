@@ -1714,8 +1714,7 @@ struct config15 {
   byte acclAdvThresh;                //125
   byte acclAdvEnabled: 1;            //126
   byte fixedSparkDuration: 1;
-  byte fixedTriggerIgnition: 1;
-  byte unused15_126: 5;
+  byte unused15_126: 6;
 
   byte testop_inj: 2;                //127
   byte testop_coil: 2;

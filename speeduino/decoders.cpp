@@ -6139,7 +6139,7 @@ void triggerPri_KATANA(void)
   curGap = curTime - toothLastToothTime;
   curGap3 = curTime - toothLastMinusOneToothTime;
   curGap5 = toothLastMinusOneToothTime - toothLastMinusThreeToothTime;
-  unsigned long curGapLocal;
+  unsigned long curGapLocal = 0;
 
   if ( curGap >= triggerFilterTime )
   {
@@ -6196,33 +6196,36 @@ void triggerPri_KATANA(void)
     }
     else
     {
-      // Optimized RPM-based targetGap2 calculation
-      uint16_t rpm = currentStatus.RPM;
-      if ( rpm < 1600 ){
-        targetGap2 = lastGap * 6 - ((lastGap * rpm) >> 10);
-      }
-      else if (rpm < 5900){
-        targetGap2 = lastGap * 5 - ((lastGap * (6000 - rpm)) >> 13);
-      }
-      else if (rpm < 10600){
-        targetGap2 = lastGap * 8 - ((lastGap * (12000 - rpm)) >> 11);
-      }
-      else if (rpm < 14000){
-        targetGap2 = lastGap * 14 - ((lastGap * (14000 - rpm)) >> 9);
-      }
-      else {
-        targetGap2 = lastGap * 18;
-      }
 
       // Simplified sync validation condition
-      bool syncCondition = ((curGap > targetGap) && (curGap3 > targetGap3) && (toothCurrentCount >= triggerActualTeeth))
+      /*bool syncCondition = ((curGap > targetGap) && (curGap3 > targetGap3) && (toothCurrentCount >= triggerActualTeeth))
                         || ((curGapLocal > (lastGap * 5 >> 1)) && (toothCurrentCount >= triggerActualTeeth))
                         || (currentStatus.hasSync == false)
                         || (toothCurrentCount >= triggerActualTeeth)
                         || (toothCurrentCount == 0);
+      */
+      bool syncCondition = (currentStatus.hasSync == false) || (toothCurrentCount >= triggerActualTeeth) || (toothCurrentCount == 0);
 
       if( syncCondition )
       {
+        // Optimized RPM-based targetGap2 calculation
+        uint16_t rpm = currentStatus.RPM;
+        if ( rpm < 1600 ){
+          targetGap2 = lastGap * 6 - ((lastGap * rpm) >> 10);
+        }
+        else if (rpm < 5900){
+          targetGap2 = lastGap * 5 - ((lastGap * (6000 - rpm)) >> 13);
+        }
+        else if (rpm < 10600){
+          targetGap2 = lastGap * 8 - ((lastGap * (12000 - rpm)) >> 11);
+        }
+        else if (rpm < 14000){
+          targetGap2 = lastGap * 14 - ((lastGap * (14000 - rpm)) >> 9);
+        }
+        else {
+          targetGap2 = lastGap * 18;
+        }
+
         bool validSync = ((curGap > targetGap) && (curGap3 > targetGap3) && (toothLastToothTime > 0))
                       || ((curGapLocal > (lastGap * 5 >> 1)) && (curGapLocal < targetGap2) && (primaryEdge != primaryTriggerEdge));
 
@@ -6233,8 +6236,6 @@ void triggerPri_KATANA(void)
 
           if( BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC) ){ BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC); }
 
-          //toothOneMinusOneTime = toothOneTime;
-          //toothOneTime = curTime;
           BIT_SET(decoderState, BIT_DECODER_TOOTH_ANG_CORRECT);
           toothCurrentCount = 0;
           //indexRatio = curGapLocal * 100 / lastGap;  //[For Debug]
@@ -6262,7 +6263,6 @@ void triggerPri_KATANA(void)
 
       if( ((toothCurrentCount == angleRef_tooth) || (toothCurrentCount == angleRef_tooth2)) && (currentStatus.hasSync == true) ) 
       {
-        //toothLastThirdToothTime = (curTime + toothLastToothTime) >> 1;
         toothLastThirdToothTime = curTime;
         BIT_SET(decoderState, BIT_DECODER_TOOTH_ANG_CORRECT);
       }
@@ -6289,7 +6289,6 @@ void triggerPri_KATANA(void)
       else
       {
         nextGap = (curGap * toothNextGapRatios[12]) >> (MULTIPLY_128 + 5);
-        //nextGap = nextGap >> 5;
         setFilter(nextGap);
       }
 
@@ -6313,7 +6312,6 @@ void triggerPri_KATANA(void)
       toothLastMinusTwoToothTime = toothLastMinusOneToothTime;
       toothLastMinusOneToothTime = toothLastToothTime;
       toothLastToothTime = curTime;
-      //lastGap = curGap;
       lastGap3 = curGap3;
     }
     else
@@ -6329,38 +6327,20 @@ void triggerPri_KATANA(void)
     {
       if ( currentStatus.RPM < 2400 )
       {
-        //if ( configPage15.gap1M == 0 )
-        {
-          targetGap  = ( 8 * curGap ) >> 3;
-          targetGap3 = (23 * curGap3) >> 4;
-          targetGap5 = (12 * curGap5) >> 4;
-        }
-        //else
-        //{
-        //  targetGap  = (configPage15.gap1M * curGap ) >> configPage15.gap1N;
-        //  targetGap3 = (configPage15.gap2M * curGap3) >> configPage15.gap2N;
-        //  targetGap5 = (configPage15.gap3M * curGap5) >> configPage15.gap3N;
-        //}
+        targetGap  = curGap;
+        targetGap3 = (23 * curGap3) >> 4;
+        if( (currentStatus.hasSync == false) && !BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC) ){ targetGap5 = (12 * curGap5) >> 4; }
       }
       else
       {
         targetGap  = ((34000 - currentStatus.RPM) * curGap ) >> GAP_THRESH_BITSHIFT_15;
         targetGap3 = ((50000 - currentStatus.RPM) * curGap3) >> GAP_THRESH_BITSHIFT_15;
-
-        //if ( configPage15.gap1M == 0 )
-        {
-          targetGap5 = (12 * curGap5) >> 4;
-        }
-        //else
-        //{
-        //  targetGap5 = (configPage15.gap3M * curGap5) >> configPage15.gap3N;
-        //}
+        if( (currentStatus.hasSync == false) && !BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC) ){ targetGap5 = (12 * curGap5) >> 4; }
       }
     }
 
     //Per tooth ignition during cranking
-    if ( configPage15.fixedTriggerIgnition == 1 ) {
-      //if ( currentStatus.RPM < (unsigned int)(configPage4.crankRPM * 4) ) {
+    if ( configPage2.perToothIgn == 1 ) {
       if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) ) {
         if ( currentStatus.hasSync == true ) {
           if ( fixedIgnitionStart == true ) {
@@ -6383,8 +6363,7 @@ void triggerPri_KATANA(void)
           }
         }
         else {
-          if(READ_PRI_TRIGGER() == primaryTriggerEdge){
-          //if (toothCurrentCount==0 || toothCurrentCount==2 || toothCurrentCount==4 || toothCurrentCount==6 || toothCurrentCount==8 || toothCurrentCount==10) {
+          if( primaryEdge == primaryTriggerEdge ){
             if (configPage4.IgInv == GOING_LOW) { endCoil1and3Charge();   endCoil2and4Charge();   }
             else                                { beginCoil1and3Charge(); beginCoil2and4Charge(); }
           }
@@ -6510,14 +6489,16 @@ uint16_t getRPM_KATANA(void)
 int getCrankAngle_KATANA(void)
 {
     //This is the current angle ATDC the engine is at. This is the last known position based on what tooth was last 'seen'. It is only accurate to the resolution of the trigger wheel (Eg 36-1 is 10 degrees)
-    unsigned long tempToothLastToothTime = toothLastThirdToothTime;
-    int tempToothCurrentCount = toothCurrentCount;
-    bool tempRevolutionOne = revolutionOne;
+    unsigned long tempToothLastToothTime;
+    int tempToothCurrentCount;
+    //bool tempRevolutionOne = revolutionOne;
     int crankAngle;
     //unsigned long toothTime;
 
     //Grab some variables that are used in the trigger code and assign them to temp variables.
     noInterrupts();
+    tempToothLastToothTime = toothLastThirdToothTime;
+    tempToothCurrentCount = toothCurrentCount;
     lastCrankAngleCalc = micros(); //micros() is no longer interrupt safe
     interrupts();
 
@@ -6541,7 +6522,7 @@ int getCrankAngle_KATANA(void)
     crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
 
     //Sequential check (simply sets whether we're on the first or 2nd revolution of the cycle)
-    if (tempRevolutionOne) { crankAngle += 360; }
+    if (revolutionOne) { crankAngle += 360; }
 
     if (crankAngle >= 720) { crankAngle -= 720; }
     if (crankAngle > CRANK_ANGLE_MAX) { crankAngle -= CRANK_ANGLE_MAX; }
