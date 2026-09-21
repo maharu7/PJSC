@@ -284,9 +284,10 @@ void triggerSetEndTeeth_SuzukiK6A(void);
 #endif                                     //[PJSC v1.10]
 
 //****************** [PJSC v1.10] ******************
+void triggerSec_MAPsync(void);
+
 void triggerSetup_KATANA(void);
 void triggerPri_KATANA(void);
-void triggerSec_KATANA(void);
 uint16_t getRPM_KATANA(void);
 int getCrankAngle_KATANA(void);
 void triggerSetEndTeeth_KATANA(void);
@@ -371,7 +372,7 @@ extern volatile byte dutyCaptureCount2;
 extern volatile byte angleRef_tooth;
 extern volatile byte angleRef_tooth2;
 extern volatile byte misfireDetectionCount;
-extern volatile bool preSync;
+extern volatile bool mapSync;
 extern volatile bool firstSyncDetect;
 extern volatile bool fixedIgnitionStart;
 extern volatile bool preSyncLoss;

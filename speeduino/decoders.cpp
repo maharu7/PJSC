@@ -96,7 +96,7 @@ volatile byte dutyCaptureCount2;
 volatile byte angleRef_tooth;
 volatile byte angleRef_tooth2;
 volatile byte misfireDetectionCount = 0;
-volatile bool preSync;
+volatile bool mapSync;
 volatile bool firstSyncDetect;
 volatile bool fixedIgnitionStart = false;
 volatile bool preSyncLoss;
@@ -398,7 +398,7 @@ void resetDecoder(void) {
   toothSystemCount = 0;
   secondaryToothCount = 0;
   //********** [PJSC v1.10] **********
-  preSync = false;
+  mapSync = false;
   BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC);
   firstSyncDetect = false;
   triggerSecFilterTime = 0;
@@ -1195,7 +1195,20 @@ void triggerPri_BasicDistributor(void)
   {
     if(currentStatus.hasSync == true) { setFilter(curGap); } //Recalc the new filter value
     else { triggerFilterTime = 0; } //If we don't yet have sync, ensure that the filter won't prevent future valid pulses from being ignored. 
-    
+
+    if( (configPage15.useMAPasSync == 1) && (mapSync == true) )               //[PJSC v1.10] For MAP sync
+    {                                                                         // |
+      revolutionOne = true;                                                   // |
+      mapSync = false;                                                        // |
+      toothCurrentCount = triggerActualTeeth;                                 // |
+    }                                                                         // |
+    else if( (configPage15.useMAPasSync == 2) && (mapSync == true) )          // |
+    {                                                                         // |
+      revolutionOne = false;                                                  // |
+      mapSync = false;                                                        // |
+      toothCurrentCount = triggerActualTeeth;                                 // V
+    }                                                                         //[PJSC v1.10] For MAP sync
+
     if( (toothCurrentCount == triggerActualTeeth) || (currentStatus.hasSync == false) ) //Check if we're back to the beginning of a revolution
     {
       toothCurrentCount = 1; //Reset the counter
@@ -6051,7 +6064,7 @@ void triggerSetup_KATANA(void)
   triggerFilterTime = 0;
   triggerSecFilterTime = 0;
   toothCurrentCount = 0;
-  preSync = false;
+  mapSync = false;
   BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC);
   firstSyncDetect = false;
   preSyncLoss = false;
@@ -6265,17 +6278,25 @@ void triggerPri_KATANA(void)
       {
         toothLastThirdToothTime = curTime;
         BIT_SET(decoderState, BIT_DECODER_TOOTH_ANG_CORRECT);
+
+        if( toothCurrentCount == angleRef_tooth )
+        {
+          toothOneMinusOneTime = toothOneTime;
+          toothOneTime = curTime;
+        }
       }
 
-      if( toothCurrentCount == angleRef_tooth )
+      if( (toothCurrentCount == 10) && (currentStatus.hasSync == true) )
       {
-        toothOneMinusOneTime = toothOneTime;
-        toothOneTime = curTime;
-
-        if( (configPage15.useMAPasSync == 1) && (preSync == true) && (currentStatus.hasSync == true) )
+        if( (configPage15.useMAPasSync == 1) && (mapSync == true) )
         {
           revolutionOne = false;
-          preSync = false;
+          mapSync = false;
+        }
+        else if( (configPage15.useMAPasSync == 2) && (mapSync == true) )
+        {
+          revolutionOne = true;
+          mapSync = false;
         }
         else { revolutionOne = !revolutionOne; }
       }
@@ -6386,7 +6407,7 @@ void triggerPri_KATANA(void)
   } //Trigger filter
 }
 
-void triggerSec_KATANA(void)
+void triggerSec_MAPsync(void)
 {
   curTime2 = micros();
   curGap2 = curTime2 - toothLastSecToothTime;
@@ -6410,7 +6431,8 @@ void triggerSec_KATANA(void)
       //if (configPage4.useResync == 1) { toothCurrentCount = configPage4.triggerTeeth; }
     }
 
-    preSync = true; //Sequential revolution flag reset
+    mapSync = true; //Sequential revolution flag reset
+    //revolutionOne = 1; //Sequential revolution reset
   }
   else 
   {
@@ -6491,7 +6513,7 @@ int getCrankAngle_KATANA(void)
     //This is the current angle ATDC the engine is at. This is the last known position based on what tooth was last 'seen'. It is only accurate to the resolution of the trigger wheel (Eg 36-1 is 10 degrees)
     unsigned long tempToothLastToothTime;
     int tempToothCurrentCount;
-    //bool tempRevolutionOne = revolutionOne;
+    bool tempRevolutionOne;
     int crankAngle;
     //unsigned long toothTime;
 
@@ -6499,6 +6521,7 @@ int getCrankAngle_KATANA(void)
     noInterrupts();
     tempToothLastToothTime = toothLastThirdToothTime;
     tempToothCurrentCount = toothCurrentCount;
+    tempRevolutionOne = revolutionOne;
     lastCrankAngleCalc = micros(); //micros() is no longer interrupt safe
     interrupts();
 
@@ -6522,7 +6545,7 @@ int getCrankAngle_KATANA(void)
     crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
 
     //Sequential check (simply sets whether we're on the first or 2nd revolution of the cycle)
-    if (revolutionOne) { crankAngle += 360; }
+    if (tempRevolutionOne == true) { crankAngle += 360; }
 
     if (crankAngle >= 720) { crankAngle -= 720; }
     if (crankAngle > CRANK_ANGLE_MAX) { crankAngle -= CRANK_ANGLE_MAX; }

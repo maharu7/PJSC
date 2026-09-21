@@ -3944,6 +3944,17 @@ void initialiseTriggers(void)
       else { primaryTriggerEdge = FALLING; }
 
       attachInterrupt(triggerInterrupt, triggerHandler, primaryTriggerEdge);
+
+      //******************** [PJSC v1.10] ********************
+      if(configPage15.useMAPasSync > 0)
+      {
+        triggerSecondaryHandler = triggerSec_MAPsync;
+
+        if(configPage4.TrigEdgeSec == 0) { secondaryTriggerEdge = RISING; }
+        else { secondaryTriggerEdge = FALLING; }
+        attachInterrupt(triggerInterrupt2, triggerSecondaryHandler, secondaryTriggerEdge);
+      }
+      //******************** [PJSC v1.10] ********************
       break;
 
     case 2:
@@ -4388,9 +4399,9 @@ void initialiseTriggers(void)
       
       attachInterrupt(triggerInterrupt, triggerHandler, CHANGE); //Hardcoded change, the primaryTriggerEdge will be used in the decoder to select if it`s an inverted or non-inverted signal.
 
-      if(configPage15.useMAPasSync == 1)
+      if(configPage15.useMAPasSync > 0)
       {
-        triggerSecondaryHandler = triggerSec_KATANA;
+        triggerSecondaryHandler = triggerSec_MAPsync;
 
         if(configPage4.TrigEdgeSec == 0) { secondaryTriggerEdge = RISING; }
         else { secondaryTriggerEdge = FALLING; }

@@ -1645,13 +1645,13 @@ struct config15 {
   byte pjscFreq;                     //91
 
   byte table4Usage: 1;               //92
-  byte useMAPasSync: 1;
   byte ecuMode: 1;
   byte pullupDigitalInput1: 1;
   byte pullupDigitalInput2: 1;
   byte pullupDigitalInput3: 1;
   byte pullupVSS: 1;
   byte squirtDeviceType: 1;
+  byte fixedSparkDuration: 1;
 
   byte exTrigModeSelect: 3;          //93
   byte externalTrigEdge: 1;
@@ -1713,8 +1713,8 @@ struct config15 {
   byte acclAdvTaperMax;              //124
   byte acclAdvThresh;                //125
   byte acclAdvEnabled: 1;            //126
-  byte fixedSparkDuration: 1;
-  byte unused15_126: 6;
+  byte useMAPasSync: 2;
+  byte unused15_126: 5;
 
   byte testop_inj: 2;                //127
   byte testop_coil: 2;
