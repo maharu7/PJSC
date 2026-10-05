@@ -225,15 +225,15 @@ byte getTSLogEntry(uint16_t byteNum)
     case 155: statusValue = highByte(currentStatus.testCnt); break;
     case 156: statusValue = lowByte(ignGap); break;
     case 157: statusValue = highByte(ignGap); break;
-    case 158: statusValue = lowByte((int)(currentStatus.MAP10)); break;
-    case 159: statusValue = highByte((int)(currentStatus.MAP10)); break;
-    case 160: statusValue = lowByte((int)(currentStatus.baro10)); break;
-    case 161: statusValue = highByte((int)(currentStatus.baro10)); break;
-    case 162: statusValue = misfireDetectionCount; break;
-    case 163: statusValue = currentStatus.egoCorrection; break; //Exhaust gas correction (%)
-    case 164: statusValue = lowByte(currentStatus.corrections2); break; //Total GammaE (%)
-    case 165: statusValue = highByte(currentStatus.corrections2); break; //Total GammaE (%)
-    case 166: statusValue = currentStatus.accelAdvance; break; //Accel Advance
+    case 158: statusValue = misfireDetectionCount; break;
+    case 159: statusValue = currentStatus.egoCorrection; break; //Exhaust gas correction (%)
+    case 160: statusValue = lowByte(currentStatus.corrections2); break; //Total GammaE (%)
+    case 161: statusValue = highByte(currentStatus.corrections2); break; //Total GammaE (%)
+    case 162: statusValue = currentStatus.accelAdvance; break; //Accel Advance
+    //case 163: statusValue = lowByte((int)(currentStatus.MAP10)); break;
+    //case 164: statusValue = highByte((int)(currentStatus.MAP10)); break;
+    //case 165: statusValue = lowByte((int)(currentStatus.baro10)); break;
+    //case 166: statusValue = highByte((int)(currentStatus.baro10)); break;
     //case 167: statusValue = lowByte(indexRatio); break; //[For Debug] Index trigger ratio for KATANA
     //case 168: statusValue = highByte(indexRatio); break; //[For Debug] Index trigger ratio for KATANA
     //****************** [PJSC v1.10] ******************
@@ -398,13 +398,13 @@ int16_t getReadableLogEntry(uint16_t logIndex)
     case 106: statusValue = extTriggerLoad; break;
     case 107: statusValue = currentStatus.testCnt; break;
     case 108: statusValue = ignGap; break;
-    case 109: statusValue = currentStatus.MAP10; break;
-    case 110: statusValue = currentStatus.baro10; break;
-    case 111: statusValue = misfireDetectionCount; break;
-    case 112: statusValue = currentStatus.egoCorrection; break; //Exhaust gas correction (%)
-    case 113: statusValue = lowByte(currentStatus.corrections2); break; //Total GammaE (%)
-    case 114: statusValue = highByte(currentStatus.corrections2); break; //Total GammaE (%)
-    case 115: statusValue = currentStatus.accelAdvance; break; //Accel Advance
+    case 109: statusValue = misfireDetectionCount; break;
+    case 110: statusValue = currentStatus.egoCorrection; break; //Exhaust gas correction (%)
+    case 111: statusValue = lowByte(currentStatus.corrections2); break; //Total GammaE (%)
+    case 112: statusValue = highByte(currentStatus.corrections2); break; //Total GammaE (%)
+    case 113: statusValue = currentStatus.accelAdvance; break; //Accel Advance
+    //case 114: statusValue = currentStatus.MAP10; break;
+    //case 115: statusValue = currentStatus.baro10; break;
     //case 119: statusValue = indexRatio; break; //[For Debug] Index trigger ratio for KATANA
    //****************** [PJSC v1.10] ******************
     default: statusValue = 0; // MISRA check
@@ -603,7 +603,7 @@ bool is2ByteEntry(uint8_t key)
   // This array MUST remain in ascending order
   // !!!! WARNING: If any value above 255 is required in this array, changes MUST be made to is2ByteEntry() function !!!!
   //[PJSC v1.10]static constexpr byte PROGMEM fsIntIndex[] = {4, 14, 17, 22, 26, 28, 33, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 76, 78, 80, 82, 86, 88, 90, 93, 95, 99, 104, 111, 121, 125 };
-  static constexpr byte PROGMEM fsIntIndex[] = {4, 14, 17, 22, 26, 28, 33, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 76, 78, 80, 82, 86, 88, 90, 93, 95, 99, 104, 117, 120, 126, 132, 134, 136, 138, 140, 142, 144, 146, 148, 150, 152, 154, 156, 158, 160, 164 };  //[PJSC v1.10]
+  static constexpr byte PROGMEM fsIntIndex[] = {4, 14, 17, 22, 26, 28, 33, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 76, 78, 80, 82, 86, 88, 90, 93, 95, 99, 104, 117, 120, 126, 132, 134, 136, 138, 140, 142, 144, 146, 148, 150, 152, 154, 156, 160 };  //[PJSC v1.10]
 
   unsigned int bot = 0U;
   unsigned int mid = _countof(fsIntIndex);

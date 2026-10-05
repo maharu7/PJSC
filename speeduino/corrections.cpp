@@ -1217,7 +1217,7 @@ uint16_t correctionsDwell(uint16_t dwell)
   }
 
   //******************** [PJSC v1.10] ********************
-//  if( configPage15.fixedSparkDuration )
+//  if( configPage15.ignitionDevice )
 //  {
 //    uint16_t adjustedSparkDur = sparkDur_uS * pulsesPerRevolution;
 //    if( currentStatus.RPM < (5000 - (sparkDur_uS * 5)) ) { adjustedSparkDur = adjustedSparkDur * (((5000 - currentStatus.RPM) >> 7) + 1); }
@@ -1249,7 +1249,7 @@ uint16_t correctionsDwell(uint16_t dwell)
   //******************** [PJSC v1.10] ********************
   /*[PJSC v1.10]
   uint16_t adjustedSparkDur = udiv_32_16(sparkDur_uS * revolutionTime, dwellPerRevolution);
-  if( configPage15.fixedSparkDuration )
+  if( configPage15.ignitionDevice )
   {
     adjustedSparkDur = sparkDur_uS * pulsesPerRevolution;
     if( currentStatus.RPM < (5000 - (sparkDur_uS * 5)) ) { adjustedSparkDur = adjustedSparkDur * (((5000 - currentStatus.RPM) >> 6) + 1); }

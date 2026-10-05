@@ -41,7 +41,7 @@ static inline uint32_t calculateInjectorTimeout(const FuelSchedule &schedule, in
 static inline void calculateIgnitionAngle(const uint16_t dwellAngle, const uint16_t channelIgnDegrees, int8_t advance, int *pEndAngle, int *pStartAngle)
 {
   //******************** [PJSC v1.10] ********************
-  if( configPage15.fixedSparkDuration )
+  if( configPage15.ignitionDevice )    // Ignition Device 0:TCI, 1:CDI
   {
     uint16_t sparkDur_uS = (configPage4.sparkDur * 10); //Spark duration is in mS*100. Multiple it by 10 to get spark duration in uS
     *pStartAngle = (int16_t)(channelIgnDegrees==0U ? (uint16_t)CRANK_ANGLE_MAX_IGN : channelIgnDegrees) - (int16_t)advance;

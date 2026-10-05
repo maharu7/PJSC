@@ -1651,7 +1651,7 @@ struct config15 {
   byte pullupDigitalInput3: 1;
   byte pullupVSS: 1;
   byte squirtDeviceType: 1;
-  byte fixedSparkDuration: 1;
+  byte ignitionDevice: 1;
 
   byte exTrigModeSelect: 3;          //93
   byte externalTrigEdge: 1;
