@@ -43,6 +43,8 @@ struct map_cycle_average_t {
 struct map_cycle_min_t {
   uint8_t cycleStartIndex;
   uint16_t mapMinimum;
+  uint16_t lastMapMinimum;      //[PJSC v1.10] For software MAP sync detection
+  bool minimumUpdated;          //[PJSC v1.10] Flag to detect when minimum is updated
 };
 
 // Working state for the event average sampling algorithm

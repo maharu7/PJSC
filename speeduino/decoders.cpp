@@ -600,19 +600,26 @@ void triggerSetup_missingTooth(void)
 {
   BIT_CLEAR(decoderState, BIT_DECODER_IS_SEQUENTIAL);
   triggerToothAngle = 360 / configPage4.triggerTeeth; //The number of degrees that passes from tooth to tooth
-  if(configPage4.TrigSpeed == CAM_SPEED) 
-  { 
+  if(configPage4.TrigSpeed == CAM_SPEED)
+  {
     //Account for cam speed missing tooth
-    triggerToothAngle = 720 / configPage4.triggerTeeth; 
+    triggerToothAngle = 720 / configPage4.triggerTeeth;
     BIT_SET(decoderState, BIT_DECODER_IS_SEQUENTIAL);
-  } 
+  }
+  //****************** [PJSC v1.10] Software MAP sync ******************
+  if( (configPage15.useMAPasSync == 3) && (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) )
+  {
+    BIT_SET(decoderState, BIT_DECODER_IS_SEQUENTIAL);
+    BIT_SET(decoderState, BIT_DECODER_HAS_SECONDARY);
+  }
+  //****************** [PJSC v1.10] Software MAP sync ******************
   triggerActualTeeth = configPage4.triggerTeeth - configPage4.triggerMissingTeeth; //The number of physical teeth on the wheel. Doing this here saves us a calculation each time in the interrupt
   triggerFilterTime = (MICROS_PER_SEC / (MAX_RPM / 60U * configPage4.triggerTeeth)); //Trigger filter time is the shortest possible time (in uS) that there can be between crank teeth (ie at max RPM). Any pulses that occur faster than this time will be discarded as noise
   if (configPage4.trigPatternSec == SEC_TRIGGER_4_1)
   {
     triggerSecFilterTime = MICROS_PER_MIN / MAX_RPM / 4U / 2U;
   }
-  else 
+  else
   {
     triggerSecFilterTime = (MICROS_PER_SEC / (MAX_RPM / 60U));
   }
@@ -620,7 +627,7 @@ void triggerSetup_missingTooth(void)
   checkSyncToothCount = (configPage4.triggerTeeth) >> 1; //50% of the total teeth.
   toothLastMinusOneToothTime = 0;
   toothCurrentCount = 0;
-  secondaryToothCount = 0; 
+  secondaryToothCount = 0;
   thirdToothCount = 0;
   toothOneTime = 0;
   toothOneMinusOneTime = 0;
@@ -1213,9 +1220,15 @@ void triggerPri_BasicDistributor(void)
     else if( (configPage15.useMAPasSync == 2) && (mapSync == true) )                                     // |
     {                                                                                                    // |
       toothCurrentCount = triggerActualTeeth >> 1;                                                       // |
+      revolutionOne = true;                                                                              // |
+      mapSync = false;                                                                                   // |
+    }                                                                                                    // |
+    else if( (configPage15.useMAPasSync == 3) && (mapSync == true) )                                     // |
+    {                                                                                                    // |
+      toothCurrentCount = triggerActualTeeth;                                                            // |
       revolutionOne = false;                                                                             // |
       mapSync = false;                                                                                   // V
-    }                                                                                                    //[PJSC v1.10] For MAP sync
+    }                                                                                                    //[PJSC v1.10] Software MAP sync
 
     if( (toothCurrentCount == triggerActualTeeth) || (currentStatus.hasSync == false) ) //Check if we're back to the beginning of a revolution
     {
@@ -1243,7 +1256,7 @@ void triggerPri_BasicDistributor(void)
       secondaryToothCount = 0;                                                                           // |
                                                                                                          // |
       if( configPage15.useMAPasSync == 0 ) { revolutionOne = false; }                                    // V
-      else { revolutionOne = !revolutionOne; }                                                           //[PJSC v1.10] For MAP sync
+      else { revolutionOne = !revolutionOne; }                                                           //[PJSC v1.10] For MAP sync (including software mode)
 
     }
     else
@@ -6213,8 +6226,7 @@ void triggerPri_KATANA(void)
       // Initial sync detection via wide lobe
       if ( (curGapLocal > (lastGap * 5 >> 1)) && (primaryEdge != primaryTriggerEdge) ){
         firstSyncDetect = true;
-        //[TMP]currentStatus.hasSync = true;
-        BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC);   //[TMP]
+        BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC);
         currentStatus.startRevolutions = 0;
         toothCurrentCount = 0;
 
@@ -6237,8 +6249,7 @@ void triggerPri_KATANA(void)
         {
           if( toothCurrentCount == triggerActualTeeth )
           {
-            //[TMP]currentStatus.hasSync = true;
-            BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC);   //[TMP]
+            BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC);
             currentStatus.startRevolutions++;
           }
           toothCurrentCount = 0;
@@ -6290,11 +6301,10 @@ void triggerPri_KATANA(void)
           else
           {
             currentStatus.startRevolutions++;
-            //[TMP]currentStatus.hasSync = true;
 
-            if ( (currentStatus.hasSync == false) || BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) ){
-              //[TMP]if( BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC) ){ BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC); }
-              BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC);   //[TMP]
+            //if ( (currentStatus.hasSync == false) || BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) ){
+            if ( (currentStatus.hasSync == false) || (currentStatus.RPM < 1000) ){
+              BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC);
             }
             //else {
             //  currentStatus.hasSync = true;
@@ -6343,12 +6353,15 @@ void triggerPri_KATANA(void)
           else
           {
             //If either fuel or ignition is sequential, only declare sync if the cam tooth has been seen OR if the missing wheel is on the cam
-            if( secondaryToothCount > 0 )
+            if( (secondaryToothCount > 0) || ((configPage15.useMAPasSync == 3) && (mapSync == true) && (currentStatus.MAP < 95)) )
             {
               currentStatus.hasSync = true;
               BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC); //the engine is fully synced so clear the Half Sync bit                    
             }
-            else if(currentStatus.hasSync != true) { BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC); } //If there is primary trigger but no secondary we only have half sync.
+            else if(currentStatus.hasSync == false)    //If there is primary trigger but no secondary we only have half sync.
+            {
+              BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC);
+            }
           }
           secondaryToothCount = 0;
 
@@ -6360,6 +6373,7 @@ void triggerPri_KATANA(void)
               mapSync = false;
               if( configPage15.useMAPasSync == 1 )     { revolutionOne = false; }
               else if( configPage15.useMAPasSync == 2 ){ revolutionOne = true;  }
+              else if((configPage15.useMAPasSync == 3) && (currentStatus.MAP < 95)){ revolutionOne = false; }
             }
             else { revolutionOne = !revolutionOne; }
           }
@@ -6428,7 +6442,7 @@ void triggerPri_KATANA(void)
     //Per tooth ignition during cranking
     if ( configPage2.perToothIgn == 1 ) {
       if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) ) {
-        if ( currentStatus.hasSync == true ) {
+        if ( (currentStatus.hasSync == true) || BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC) ) {
           if ( fixedIgnitionStart == true ) {
             endCoil1and3Charge();
             endCoil2and4Charge();

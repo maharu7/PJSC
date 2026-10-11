@@ -330,7 +330,12 @@ TESTABLE_INLINE_STATIC bool cycleAverageMAPReading(const statuses &current, cons
 
 static inline bool cycleMinimumAccumulate(map_cycle_min_t &cycle_min, const map_adc_readings_t &sensorReadings) {
   //Check whether the current reading is lower than the running minimum
-  cycle_min.mapMinimum = min(sensorReadings.mapADC, cycle_min.mapMinimum); 
+  if(sensorReadings.mapADC < cycle_min.mapMinimum)
+  {
+    cycle_min.lastMapMinimum = cycle_min.mapMinimum;
+    cycle_min.mapMinimum = sensorReadings.mapADC;
+    cycle_min.minimumUpdated = true;  //[PJSC v1.10] Flag that minimum was updated
+  }
 
   // We are *not* ready to derive new maps readings yet
   return false;
@@ -339,6 +344,8 @@ static inline bool cycleMinimumAccumulate(map_cycle_min_t &cycle_min, const map_
 static inline void reset(const statuses &current, map_cycle_min_t &cycle_min, const map_adc_readings_t &sensorReadings) {
   cycle_min.cycleStartIndex = (uint8_t)current.startRevolutions; //Reset the current rev count
   cycle_min.mapMinimum = sensorReadings.mapADC; //Reset the latest value so the next reading will always be lower
+  cycle_min.lastMapMinimum = sensorReadings.mapADC;  //[PJSC v1.10] Initialize last minimum
+  cycle_min.minimumUpdated = false;  //[PJSC v1.10] Reset update flag
 }
 
 static inline bool cycleMinimumEndCycle(const statuses &current, map_cycle_min_t &cycle_min, map_adc_readings_t &sensorReadings) {
@@ -522,7 +529,7 @@ void readMAP(void)
   }
 
   // Process sensor readings according to user chosen sampling algorithm
-  if(readingIsValid) 
+  if(readingIsValid)
   {
     // Roll over the last reading
     storeLastMAPReadings(mapAlgorithmState.lastReading, currentStatus.MAP);
@@ -530,6 +537,26 @@ void readMAP(void)
     // Convert from filtered sensor readings to kPa
     setMAPValuesFromReadings(mapAlgorithmState.sensorReadings, configPage2, configPage6.useEMAP, currentStatus);
   }
+
+  //****************** [PJSC v1.10] Software MAP sync detection ******************
+  // Detect intake stroke by monitoring MAP minimum value
+  if(configPage15.useMAPasSync == 3)
+  {
+    if(configPage2.mapSample == MAPSamplingCycleMinimum)
+    {
+      // Check if MAP minimum was updated in this cycle
+      if(mapAlgorithmState.cycle_min.minimumUpdated == true)
+      {
+        mapAlgorithmState.cycle_min.minimumUpdated = false;
+        // Set mapSync flag to indicate intake stroke detected
+        bool invalidSync = (revolutionOne == false) && ((currentStatus.TPS > 20) || (currentStatus.MAP > 98) || (currentStatus.tpsDOT > 250) || (currentStatus.hasSync == true));
+        if( !invalidSync ){ mapSync = true; }
+      }
+    }
+  }
+  //****************** [PJSC v1.10] Software MAP sync detection ******************
+  //  setMAPValuesFromReadings(mapAlgorithmState.sensorReadings, configPage2, configPage6.useEMAP, currentStatus);
+  //}
 }
 
 /** @brief Get the MAP change between the last 2 readings */

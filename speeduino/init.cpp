@@ -3927,7 +3927,7 @@ void initialiseTriggers(void)
 
       attachInterrupt(triggerInterrupt, triggerHandler, primaryTriggerEdge);
 
-      if(BIT_CHECK(decoderState, BIT_DECODER_HAS_SECONDARY)) { attachInterrupt(triggerInterrupt2, triggerSecondaryHandler, secondaryTriggerEdge); }
+      if(BIT_CHECK(decoderState, BIT_DECODER_HAS_SECONDARY) && (configPage15.useMAPasSync != 3)) { attachInterrupt(triggerInterrupt2, triggerSecondaryHandler, secondaryTriggerEdge); }  //[PJSC v1.10] Software MAP sync (mode 3) doesn't use hardware interrupt
       //[PJSC v1.10]if(configPage10.vvt2Enabled > 0) { attachInterrupt(triggerInterrupt3, triggerTertiaryHandler, tertiaryTriggerEdge); } // we only need this for vvt2, so not really needed if it's not used
 
       break;
@@ -3946,7 +3946,7 @@ void initialiseTriggers(void)
       attachInterrupt(triggerInterrupt, triggerHandler, primaryTriggerEdge);
 
       //******************** [PJSC v1.10] ********************
-      if(configPage15.useMAPasSync > 0)
+      if((configPage15.useMAPasSync > 0) && (configPage15.useMAPasSync != 3))  //[PJSC v1.10] Software MAP sync (mode 3) doesn't use hardware interrupt
       {
         triggerSecondaryHandler = triggerSec_MAPsync;
 
@@ -4399,7 +4399,7 @@ void initialiseTriggers(void)
       
       attachInterrupt(triggerInterrupt, triggerHandler, CHANGE); //Hardcoded change, the primaryTriggerEdge will be used in the decoder to select if it`s an inverted or non-inverted signal.
 
-      if(configPage15.useMAPasSync > 0)
+      if((configPage15.useMAPasSync > 0) && (configPage15.useMAPasSync != 3))  //[PJSC v1.10] Software MAP sync (mode 3) doesn't use hardware interrupt
       {
         triggerSecondaryHandler = triggerSec_MAPsync;
 
