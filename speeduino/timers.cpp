@@ -370,6 +370,7 @@ void oneMSInterval(void) //Most ARM chips can simply call a function
     
 
     //Check for pulsed ignition output test
+
     if( (HWTest_IGN_Pulsed > 0) )
     {
       if(testIgnitionPulseCount >= configPage13.hwTestIgnDuration)
@@ -389,7 +390,7 @@ void oneMSInterval(void) //Most ARM chips can simply call a function
       }
       else { testIgnitionPulseCount++; }
     }
-    
+
   }
 
 

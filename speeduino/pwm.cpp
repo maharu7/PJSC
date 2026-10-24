@@ -204,7 +204,8 @@ void ign1Toggle(void)
   if (pjsc_pwm_state[CH_IGN1])
   {
     endCoil1Charge();
-    SET_COMPARE(IGN1_COMPARE, IGN1_COUNTER + (pjsc_pwm_max_count[CH_IGN1] - pjsc_pwm_cur_value[CH_IGN1]));
+    //SET_COMPARE(IGN1_COMPARE, IGN1_COUNTER + (pjsc_pwm_max_count[CH_IGN1] - pjsc_pwm_cur_value[CH_IGN1]));
+    SET_COMPARE(IGN1_COMPARE, IGN1_COUNTER + (pjsc_pwm_max_count_spark - pjsc_pwm_cur_value[CH_IGN1]));
     pjsc_pwm_state[CH_IGN1] = false;
 
     if( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE) )
@@ -232,7 +233,8 @@ void ign2Toggle(void)
   if (pjsc_pwm_state[CH_IGN2])
   {
     endCoil2Charge();
-    SET_COMPARE(IGN2_COMPARE, IGN2_COUNTER + (pjsc_pwm_max_count[CH_IGN2] - pjsc_pwm_cur_value[CH_IGN2]));
+    //SET_COMPARE(IGN2_COMPARE, IGN2_COUNTER + (pjsc_pwm_max_count[CH_IGN2] - pjsc_pwm_cur_value[CH_IGN2]));
+    SET_COMPARE(IGN2_COMPARE, IGN2_COUNTER + (pjsc_pwm_max_count_spark - pjsc_pwm_cur_value[CH_IGN2]));
     pjsc_pwm_state[CH_IGN2] = false;
 
     if( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE) )
@@ -260,7 +262,8 @@ void ign3Toggle(void)
   if (pjsc_pwm_state[CH_IGN3])
   {
     endCoil3Charge();
-    SET_COMPARE(IGN3_COMPARE, IGN3_COUNTER + (pjsc_pwm_max_count[CH_IGN3] - pjsc_pwm_cur_value[CH_IGN3]));
+    //SET_COMPARE(IGN3_COMPARE, IGN3_COUNTER + (pjsc_pwm_max_count[CH_IGN3] - pjsc_pwm_cur_value[CH_IGN3]));
+    SET_COMPARE(IGN3_COMPARE, IGN3_COUNTER + (pjsc_pwm_max_count_spark - pjsc_pwm_cur_value[CH_IGN3]));
     pjsc_pwm_state[CH_IGN3] = false;
 
     if( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE) )
@@ -288,7 +291,8 @@ void ign4Toggle(void)
   if (pjsc_pwm_state[CH_IGN4])
   {
     endCoil4Charge();
-    SET_COMPARE(IGN4_COMPARE, IGN4_COUNTER + (pjsc_pwm_max_count[CH_IGN4] - pjsc_pwm_cur_value[CH_IGN4]));
+    //SET_COMPARE(IGN4_COMPARE, IGN4_COUNTER + (pjsc_pwm_max_count[CH_IGN4] - pjsc_pwm_cur_value[CH_IGN4]));
+    SET_COMPARE(IGN4_COMPARE, IGN4_COUNTER + (pjsc_pwm_max_count_spark - pjsc_pwm_cur_value[CH_IGN4]));
     pjsc_pwm_state[CH_IGN4] = false;
 
     if( BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE) )
@@ -471,67 +475,67 @@ void ignTstControlPulse(byte ignCh)
     tmp_testpw = configPage15.testpw;
     if(configPage15.testop_coil == TEST_OP_ALL) { ignCh = CH_IGN1; allChOutput = true; }
     currentStatus.testCnt = 0;
-  }
 
-  if( BIT_CHECK(currentStatus.testOutputs, 1) && !BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE) )  //Ignition output off
-  {
-    switch (ignCh) {
-      case CH_IGN1:
-        endCoil1Charge();
-        BIT_CLEAR(currentStatus.testModeActive, BIT_TEST_IGN1);
-        IGN1_TIMER_DISABLE();
-        if(allChOutput == false) { break; }
-      
-      case CH_IGN2:
-        endCoil2Charge();
-        BIT_CLEAR(currentStatus.testModeActive, BIT_TEST_IGN2);
-        IGN2_TIMER_DISABLE();
-        if(allChOutput == false) { break; }
-      
-      case CH_IGN3:
-        endCoil3Charge();
-        BIT_CLEAR(currentStatus.testModeActive, BIT_TEST_IGN3);
-        IGN3_TIMER_DISABLE();
-        if(allChOutput == false) { break; }
-      
-      case CH_IGN4:
-        endCoil4Charge();
-        BIT_CLEAR(currentStatus.testModeActive, BIT_TEST_IGN4);
-        IGN4_TIMER_DISABLE();
-        if(allChOutput == false) { break; }
-      
-      default:
-        break;
+    if( !BIT_CHECK(currentStatus.testMode, BIT_TEST_PULSE) )
+    {
+      switch (ignCh) {
+        case CH_IGN1:
+          endCoil1Charge();
+          BIT_CLEAR(currentStatus.testModeActive, BIT_TEST_IGN1);
+          IGN1_TIMER_DISABLE();
+          if(allChOutput == false) { break; }
+        
+        case CH_IGN2:
+          endCoil2Charge();
+          BIT_CLEAR(currentStatus.testModeActive, BIT_TEST_IGN2);
+          IGN2_TIMER_DISABLE();
+          if(allChOutput == false) { break; }
+        
+        case CH_IGN3:
+          endCoil3Charge();
+          BIT_CLEAR(currentStatus.testModeActive, BIT_TEST_IGN3);
+          IGN3_TIMER_DISABLE();
+          if(allChOutput == false) { break; }
+        
+        case CH_IGN4:
+          endCoil4Charge();
+          BIT_CLEAR(currentStatus.testModeActive, BIT_TEST_IGN4);
+          IGN4_TIMER_DISABLE();
+          if(allChOutput == false) { break; }
+        
+        default:
+          break;
+      }
     }
-  }
-  else
-  {
-    pjsc_pwm_max_count_spark = 1000000L * tmp_testint / 400000;            //Converts the pulse interval in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
-    pjsc_pwm_target_value[ignCh] = 1000000L * tmp_testpw / 400000;         //Converts the pulse width in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
+    else
+    {
+      pjsc_pwm_max_count_spark = 1000000L * tmp_testint / 400000;            //Converts the pulse interval in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
+      pjsc_pwm_target_value[ignCh] = 1000000L * tmp_testpw / 400000;         //Converts the pulse width in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle
 
-    switch (ignCh) {
-      case CH_IGN1:
-        BIT_SET(currentStatus.testModeActive, BIT_TEST_IGN1);
-        IGN1_TIMER_ENABLE();
-        if(allChOutput == false) { break; }
-        
-      case CH_IGN2:
-        BIT_SET(currentStatus.testModeActive, BIT_TEST_IGN2);
-        IGN2_TIMER_ENABLE();
-        if(allChOutput == false) { break; }
-        
-      case CH_IGN3:
-        BIT_SET(currentStatus.testModeActive, BIT_TEST_IGN3);
-        IGN3_TIMER_ENABLE();
-        if(allChOutput == false) { break; }
-        
-      case CH_IGN4:
-        BIT_SET(currentStatus.testModeActive, BIT_TEST_IGN4);
-        IGN4_TIMER_ENABLE();
-        if(allChOutput == false) { break; }
+      switch (ignCh) {
+        case CH_IGN1:
+          BIT_SET(currentStatus.testModeActive, BIT_TEST_IGN1);
+          IGN1_TIMER_ENABLE();
+          if(allChOutput == false) { break; }
+          
+        case CH_IGN2:
+          BIT_SET(currentStatus.testModeActive, BIT_TEST_IGN2);
+          IGN2_TIMER_ENABLE();
+          if(allChOutput == false) { break; }
+          
+        case CH_IGN3:
+          BIT_SET(currentStatus.testModeActive, BIT_TEST_IGN3);
+          IGN3_TIMER_ENABLE();
+          if(allChOutput == false) { break; }
+          
+        case CH_IGN4:
+          BIT_SET(currentStatus.testModeActive, BIT_TEST_IGN4);
+          IGN4_TIMER_ENABLE();
+          if(allChOutput == false) { break; }
 
-      default:
-        break;
+        default:
+          break;
+      }
     }
   }
 }

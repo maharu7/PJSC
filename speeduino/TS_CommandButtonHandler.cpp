@@ -292,10 +292,18 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       if( BIT_CHECK(currentStatus.testOutputs, 1) ) { BIT_CLEAR(currentStatus.testMode, BIT_TEST_PULSE); injTstControlPulse(configPage15.testsel_inj); }
       break;
     case TS_CMD_IGN_PULSE_ON: // cmd group is for ignition Pulse output start actions
-      if( BIT_CHECK(currentStatus.testOutputs, 1) ) { BIT_SET(currentStatus.testMode, BIT_TEST_PULSE); ignTstControlPulse((configPage15.testsel_coil + CH_IGN1)); }
+      if( BIT_CHECK(currentStatus.testOutputs, 1) )
+      {
+        BIT_SET(currentStatus.testMode, BIT_TEST_PULSE);
+        ignTstControlPulse((configPage15.testsel_coil + CH_IGN1));
+      }
       break;
     case TS_CMD_IGN_PULSE_OFF: // cmd group is for ignition Pulse output stop actions
-      if( BIT_CHECK(currentStatus.testOutputs, 1) ) { BIT_CLEAR(currentStatus.testMode, BIT_TEST_PULSE); ignTstControlPulse((configPage15.testsel_coil + CH_IGN1)); }
+      if( BIT_CHECK(currentStatus.testOutputs, 1) )
+      {
+        BIT_CLEAR(currentStatus.testMode, BIT_TEST_PULSE);
+        ignTstControlPulse((configPage15.testsel_coil + CH_IGN1));
+      }
       break;
     case TS_CMD_MUX_PULSE_ON: // cmd group is for MUX Pulse output start actions
       if( BIT_CHECK(currentStatus.testOutputs, 1) ) { BIT_SET(currentStatus.testMode, BIT_TEST_PULSE); muxPulseOutputControl((configPage15.testsel_mux + CH_MUX1)); }
@@ -324,8 +332,8 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       break;
 
     case TS_CMD_IGN1_PULSED: // cmd group is for spark1 50%dc actions
-//[PJSC v1.10]      if( BIT_CHECK(currentStatus.testOutputs, 1) ) { BIT_SET(HWTest_IGN_Pulsed, IGN1_CMD_BIT); }
-//[PJSC v1.10]      if(!BIT_CHECK(HWTest_IGN_Pulsed, IGN1_CMD_BIT)) { endCoil1Charge(); } //Ensure this output is turned off (Otherwise the output may stay on permanently)
+      //[PJSC v1.10]if( BIT_CHECK(currentStatus.testOutputs, 1) ) { BIT_SET(HWTest_IGN_Pulsed, IGN1_CMD_BIT); }
+      //[PJSC v1.10]if(!BIT_CHECK(HWTest_IGN_Pulsed, IGN1_CMD_BIT)) { endCoil1Charge(); } //Ensure this output is turned off (Otherwise the output may stay on permanently)
       if( BIT_CHECK(currentStatus.testOutputs, 1) )                           //[PJSC v1.10] For PWM output by Test mode
       {                                                                       // |
         BIT_SET(currentStatus.testMode, BIT_TEST_PWM);                        // |

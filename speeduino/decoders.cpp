@@ -405,22 +405,25 @@ void resetDecoder(void) {
   triggerSecFilterTime = 0;
 
   //End all coil charges to ensure no stray sparks on startup
-  endCoil1Charge();
-  endCoil2Charge();
-  endCoil3Charge();
-  endCoil4Charge();
-  #if IGN_CHANNELS >= 5
-  endCoil5Charge();
-  #endif
-  #if (IGN_CHANNELS >= 6)
-  endCoil6Charge();
-  #endif
-  #if (IGN_CHANNELS >= 7)
-  endCoil7Charge();
-  #endif
-  #if (IGN_CHANNELS >= 8)
-  endCoil8Charge();
-  #endif
+  if( !BIT_CHECK(currentStatus.testOutputs, 1) )
+  {
+    endCoil1Charge();
+    endCoil2Charge();
+    endCoil3Charge();
+    endCoil4Charge();
+    #if IGN_CHANNELS >= 5
+    endCoil5Charge();
+    #endif
+    #if (IGN_CHANNELS >= 6)
+    endCoil6Charge();
+    #endif
+    #if (IGN_CHANNELS >= 7)
+    endCoil7Charge();
+    #endif
+    #if (IGN_CHANNELS >= 8)
+    endCoil8Charge();
+    #endif
+  }
   //********** [PJSC v1.10] **********
 }
 
