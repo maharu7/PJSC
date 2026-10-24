@@ -495,11 +495,10 @@ This is so we can use an unsigned byte (0-255) to represent temperature ranges f
 #define MUXOUT_FUELPUMP           4
 #define MUXOUT_BOOST              5
 #define MUXOUT_VVT                6
-#define MUXOUT_VVT2               7
-#define MUXOUT_TACH               8
-#define MUXOUT_WMI                9
-#define MUXOUT_OILSOLENOID       10
-#define MUXOUT_STARTER           11
+#define MUXOUT_TACH               7
+#define MUXOUT_WMI                8
+#define MUXOUT_OILSOLENOID        9
+#define MUXOUT_STARTER           10
 
 #define ANALOG_INPUT_OFF          0
 #define ANALOG_EXVALVE            1

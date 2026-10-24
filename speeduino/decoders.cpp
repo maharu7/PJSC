@@ -6373,7 +6373,7 @@ void triggerPri_KATANA(void)
               mapSync = false;
               if( configPage15.useMAPasSync == 1 )     { revolutionOne = false; }
               else if( configPage15.useMAPasSync == 2 ){ revolutionOne = true;  }
-              else if((configPage15.useMAPasSync == 3) && (currentStatus.MAP < 95)){ revolutionOne = false; }
+              else if( configPage15.useMAPasSync == 3 ){ revolutionOne = false; }
             }
             else { revolutionOne = !revolutionOne; }
           }

@@ -3168,6 +3168,300 @@ void setPinMapping(byte boardID)
       break;
   }
 
+//********** [PJSC v1.10] Setup MUX output and Analog input pins **********
+  if( (configPage2.pinMapping >= 70) && (configPage2.pinMapping <= 75) )    //For PJSC ver1.0, 1.10 and SPARK board
+  {
+    switch (configPage15.muxout1Selection)
+    {
+      case MUXOUT_OFF:
+        break;
+
+      case MUXOUT_IDLE:
+        pinIdle1 = pinTranslate(pinMuxout1);
+        break;
+
+      case MUXOUT_FAN:
+        pinFan = pinTranslate(pinMuxout1);
+        break;
+
+      case MUXOUT_LAUNCH:
+        pinLaunch = pinTranslate(pinMuxout1);
+        break;
+
+      case MUXOUT_FUELPUMP:
+        pinFuelPump = pinTranslate(pinMuxout1);
+        break;
+
+      case MUXOUT_BOOST:
+        pinBoost = pinTranslate(pinMuxout1);
+        break;
+
+      case MUXOUT_VVT:
+        pinVVT_1 = pinTranslate(pinMuxout1);
+        break;
+
+      case MUXOUT_TACH:
+        pinTachOut = pinTranslate(pinMuxout1);
+        break;
+
+      case MUXOUT_WMI:
+        pinWMIEnabled = pinTranslate(pinMuxout1);
+        break;
+
+      case MUXOUT_OILSOLENOID:
+        //pinOilSolenoid = pinTranslate(pinMuxout1);
+        pinVVT_1 = pinTranslate(pinMuxout1);
+        break;
+
+      case MUXOUT_STARTER:
+        pinStarter = pinTranslate(pinMuxout1);
+        break;
+
+      default:
+        break;
+    }
+
+    switch (configPage15.muxout2Selection)
+    {
+      case MUXOUT_OFF:
+        break;
+
+      case MUXOUT_IDLE:
+        pinIdle1 = pinTranslate(pinMuxout2);
+        break;
+
+      case MUXOUT_FAN:
+        pinFan = pinTranslate(pinMuxout2);
+        break;
+
+      case MUXOUT_LAUNCH:
+        pinLaunch = pinTranslate(pinMuxout2);
+        break;
+
+      case MUXOUT_FUELPUMP:
+        pinFuelPump = pinTranslate(pinMuxout2);
+        break;
+
+      case MUXOUT_BOOST:
+        pinBoost = pinTranslate(pinMuxout2);
+        break;
+
+      case MUXOUT_VVT:
+        pinVVT_1 = pinTranslate(pinMuxout2);
+        break;
+
+      case MUXOUT_TACH:
+        pinTachOut = pinTranslate(pinMuxout2);
+        break;
+
+      case MUXOUT_WMI:
+        pinWMIEnabled = pinTranslate(pinMuxout2);
+        break;
+
+      case MUXOUT_OILSOLENOID:
+        //pinOilSolenoid = pinTranslate(pinMuxout2);
+        pinVVT_1 = pinTranslate(pinMuxout2);
+        break;
+
+      case MUXOUT_STARTER:
+        pinStarter = pinTranslate(pinMuxout2);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  if( (configPage2.pinMapping >= 71) && (configPage2.pinMapping <= 75) )       //For PJSC SPARK board
+  {
+    switch (configPage15.muxout3Selection)
+    {
+      case MUXOUT_OFF:
+        break;
+
+      case MUXOUT_IDLE:
+        pinIdle1 = pinTranslate(pinMuxout3);
+        break;
+
+      case MUXOUT_FAN:
+        pinFan = pinTranslate(pinMuxout3);
+        break;
+
+      case MUXOUT_LAUNCH:
+        pinLaunch = pinTranslate(pinMuxout3);
+        break;
+
+      case MUXOUT_FUELPUMP:
+        pinFuelPump = pinTranslate(pinMuxout3);
+        break;
+
+      case MUXOUT_BOOST:
+        pinBoost = pinTranslate(pinMuxout3);
+        break;
+
+      case MUXOUT_VVT:
+        pinVVT_1 = pinTranslate(pinMuxout3);
+        break;
+
+      case MUXOUT_TACH:
+        pinTachOut = pinTranslate(pinMuxout3);
+        break;
+
+      case MUXOUT_WMI:
+        pinWMIEnabled = pinTranslate(pinMuxout3);
+        break;
+
+      case MUXOUT_OILSOLENOID:
+        //pinOilSolenoid = pinTranslate(pinMuxout3);
+        pinVVT_1 = pinTranslate(pinMuxout3);
+        break;
+
+      case MUXOUT_STARTER:
+        pinStarter = pinTranslate(pinMuxout3);
+        break;
+
+      default:
+        break;
+    }
+
+    switch (configPage15.muxout4Selection)
+    {
+      case MUXOUT_OFF:
+        break;
+
+      case MUXOUT_IDLE:
+        pinIdle1 = pinTranslate(pinMuxout4);
+        break;
+
+      case MUXOUT_FAN:
+        pinFan = pinTranslate(pinMuxout4);
+        break;
+
+      case MUXOUT_LAUNCH:
+        pinLaunch = pinTranslate(pinMuxout4);
+        break;
+
+      case MUXOUT_FUELPUMP:
+        pinFuelPump = pinTranslate(pinMuxout4);
+        break;
+
+      case MUXOUT_BOOST:
+        pinBoost = pinTranslate(pinMuxout4);
+        break;
+
+      case MUXOUT_WMI:
+        pinWMIEnabled = pinTranslate(pinMuxout4);
+        break;
+
+      case MUXOUT_VVT:
+        pinVVT_1 = pinTranslate(pinMuxout4);
+        break;
+
+      case MUXOUT_TACH:
+        pinTachOut = pinTranslate(pinMuxout4);
+        break;
+
+      case MUXOUT_OILSOLENOID:
+        //pinOilSolenoid = pinTranslate(pinMuxout4);
+        pinVVT_1 = pinTranslate(pinMuxout4);
+        break;
+
+      case MUXOUT_STARTER:
+        pinStarter = pinTranslate(pinMuxout4);
+        break;
+
+      default:
+        break;
+    }
+
+    switch (configPage15.muxoutHCSelection)
+    {
+      case MUXOUT_OFF:
+        break;
+
+      case MUXOUT_IDLE:
+        pinIdle1 = pinTranslate(pinMuxoutHC);
+        break;
+
+      case MUXOUT_FAN:
+        pinFan = pinTranslate(pinMuxoutHC);
+        break;
+
+      case MUXOUT_LAUNCH:
+        pinLaunch = pinTranslate(pinMuxoutHC);
+        break;
+
+      case MUXOUT_FUELPUMP:
+        pinFuelPump = pinTranslate(pinMuxoutHC);
+        break;
+
+      case MUXOUT_BOOST:
+        pinBoost = pinTranslate(pinMuxoutHC);
+        break;
+
+      case MUXOUT_VVT:
+        pinVVT_1 = pinTranslate(pinMuxoutHC);
+        break;
+
+      case MUXOUT_TACH:
+        pinTachOut = pinTranslate(pinMuxoutHC);
+        break;
+
+      case MUXOUT_OILSOLENOID:
+        //pinOilSolenoid = pinTranslate(pinMuxoutHC);
+        pinVVT_1 = pinTranslate(pinMuxoutHC);
+        break;
+
+      case MUXOUT_STARTER:
+        pinStarter = pinTranslate(pinMuxoutHC);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  if( configPage2.pinMapping == 70 )  //For PJSC ver1.0 and 1.10 board
+  {
+    switch (configPage15.analogInputPortSelection)
+    {
+      case ANALOG_INPUT_OFF:
+        break;
+
+      case ANALOG_EXVALVE:
+        pinExValve = pinTranslate(pinAnalogInput1);
+        break;
+
+      case ANALOG_O2_SEC:
+        pinO2_2 = pinTranslate(pinAnalogInput1);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  if( configPage2.pinMapping == 70 )
+  {
+    switch (configPage15.analogInputPortSelection2)                   //For PJSC ver1.0 board
+    {
+      case ANALOG_INPUT_OFF:
+        break;
+
+      case ANALOG_BARO:
+        pinBaro = pinTranslate(pinAnalogInput2);
+        break;
+
+      case ANALOG_EGT:
+        pinEGT = pinTranslate(pinAnalogInput2);
+        break;
+
+      default:
+        break;
+    }
+  }
+//********** [PJSC v1.10] Setup MUX output and Analog input pins **********
+
   //Setup any devices that are using selectable pins
 
   if ( (configPage6.launchPin != 0) && (configPage6.launchPin < BOARD_MAX_IO_PINS) ) { pinLaunch = pinTranslate(configPage6.launchPin); }
@@ -3209,320 +3503,6 @@ void setPinMapping(byte boardID)
   if ((configPage15.airConFanPin != 0) && (configPage15.airConFanPin < BOARD_MAX_IO_PINS) ) { pinAirConFan = pinTranslate(configPage15.airConFanPin); }
   if ((configPage15.airConReqPin != 0) && (configPage15.airConReqPin < BOARD_MAX_IO_PINS) ) { pinAirConRequest = pinTranslate(configPage15.airConReqPin); }
   [PJSC v1.10] Omitto Ari conditoner controll */ 
-
-//********** [PJSC v1.10] Setup MUX output and Analog input pins **********
-  if( (configPage2.pinMapping >= 70) && (configPage2.pinMapping <= 75) )    //For PJSC ver1.0, 1.10 and SPARK board
-  {
-    switch (configPage15.muxout1Selection)
-    {
-      case MUXOUT_OFF:
-        break;
-
-      case MUXOUT_IDLE:
-        pinIdle1 = pinMuxout1;
-        break;
-
-      case MUXOUT_FAN:
-        pinFan = pinMuxout1;
-        break;
-
-      case MUXOUT_LAUNCH:
-        pinLaunch = pinMuxout1;
-        break;
-
-      case MUXOUT_FUELPUMP:
-        pinFuelPump = pinMuxout1;
-        break;
-
-      case MUXOUT_BOOST:
-        pinBoost = pinMuxout1;
-        break;
-
-      case MUXOUT_VVT:
-        pinVVT_1 = pinMuxout1;
-        break;
-
-      case MUXOUT_VVT2:
-        pinVVT_2 = pinMuxout1;
-        break;
-
-      case MUXOUT_TACH:
-        pinTachOut = pinMuxout1;
-        break;
-
-      case MUXOUT_WMI:
-        pinWMIEnabled = pinMuxout1;
-        break;
-
-      case MUXOUT_OILSOLENOID:
-        ;pinOilSolenoid = pinMuxout1;
-        pinVVT_1 = pinMuxout1;
-        break;
-
-      case MUXOUT_STARTER:
-        pinStarter = pinMuxout1;
-        break;
-
-      default:
-        break;
-    }
-
-    switch (configPage15.muxout2Selection)
-    {
-      case MUXOUT_OFF:
-        break;
-
-      case MUXOUT_IDLE:
-        pinIdle1 = pinMuxout2;
-        break;
-
-      case MUXOUT_FAN:
-        pinFan = pinMuxout2;
-        break;
-
-      case MUXOUT_LAUNCH:
-        pinLaunch = pinMuxout2;
-        break;
-
-      case MUXOUT_FUELPUMP:
-        pinFuelPump = pinMuxout2;
-        break;
-
-      case MUXOUT_BOOST:
-        pinBoost = pinMuxout2;
-        break;
-
-      case MUXOUT_VVT:
-        pinVVT_1 = pinMuxout2;
-        break;
-
-      case MUXOUT_VVT2:
-        pinVVT_2 = pinMuxout2;
-        break;
-
-      case MUXOUT_TACH:
-        pinTachOut = pinMuxout2;
-        break;
-
-      case MUXOUT_WMI:
-        pinWMIEnabled = pinMuxout2;
-        break;
-
-      case MUXOUT_OILSOLENOID:
-        ;pinOilSolenoid = pinMuxout2;
-        pinVVT_1 = pinMuxout2;
-        break;
-
-      case MUXOUT_STARTER:
-        pinStarter = pinMuxout2;
-        break;
-
-      default:
-        break;
-    }
-  }
-
-  if( (configPage2.pinMapping >= 71) && (configPage2.pinMapping <= 75) )       //For PJSC SPARK board
-  {
-    switch (configPage15.muxout3Selection)
-    {
-      case MUXOUT_OFF:
-        break;
-
-      case MUXOUT_IDLE:
-        pinIdle1 = pinMuxout3;
-        break;
-
-      case MUXOUT_FAN:
-        pinFan = pinMuxout3;
-        break;
-
-      case MUXOUT_LAUNCH:
-        pinLaunch = pinMuxout3;
-        break;
-
-      case MUXOUT_FUELPUMP:
-        pinFuelPump = pinMuxout3;
-        break;
-
-      case MUXOUT_BOOST:
-        pinBoost = pinMuxout3;
-        break;
-
-      case MUXOUT_VVT:
-        pinVVT_1 = pinMuxout3;
-        break;
-
-      case MUXOUT_VVT2:
-        pinVVT_2 = pinMuxout3;
-        break;
-
-      case MUXOUT_TACH:
-        pinTachOut = pinMuxout3;
-        break;
-
-      case MUXOUT_WMI:
-        pinWMIEnabled = pinMuxout3;
-        break;
-
-      case MUXOUT_OILSOLENOID:
-        ;pinOilSolenoid = pinMuxout3;
-        pinVVT_1 = pinMuxout3;
-        break;
-
-      case MUXOUT_STARTER:
-        pinStarter = pinMuxout3;
-        break;
-
-      default:
-        break;
-    }
-
-    switch (configPage15.muxout4Selection)
-    {
-      case MUXOUT_OFF:
-        break;
-
-      case MUXOUT_IDLE:
-        pinIdle1 = pinMuxout4;
-        break;
-
-      case MUXOUT_FAN:
-        pinFan = pinMuxout4;
-        break;
-
-      case MUXOUT_LAUNCH:
-        pinLaunch = pinMuxout4;
-        break;
-
-      case MUXOUT_FUELPUMP:
-        pinFuelPump = pinMuxout4;
-        break;
-
-      case MUXOUT_BOOST:
-        pinBoost = pinMuxout4;
-        break;
-
-      case MUXOUT_WMI:
-        pinWMIEnabled = pinMuxout4;
-        break;
-
-      case MUXOUT_VVT:
-        pinVVT_1 = pinMuxout4;
-        break;
-
-      case MUXOUT_VVT2:
-        pinVVT_2 = pinMuxout4;
-        break;
-
-      case MUXOUT_TACH:
-        pinTachOut = pinMuxout4;
-        break;
-
-      case MUXOUT_OILSOLENOID:
-        ;pinOilSolenoid = pinMuxout4;
-        pinVVT_1 = pinMuxout4;
-        break;
-
-      case MUXOUT_STARTER:
-        pinStarter = pinMuxout4;
-        break;
-
-      default:
-        break;
-    }
-
-    switch (configPage15.muxoutHCSelection)
-    {
-      case MUXOUT_OFF:
-        break;
-
-      case MUXOUT_IDLE:
-        pinIdle1 = pinMuxoutHC;
-        break;
-
-      case MUXOUT_FAN:
-        pinFan = pinMuxoutHC;
-        break;
-
-      case MUXOUT_LAUNCH:
-        pinLaunch = pinMuxoutHC;
-        break;
-
-      case MUXOUT_FUELPUMP:
-        pinFuelPump = pinMuxoutHC;
-        break;
-
-      case MUXOUT_BOOST:
-        pinBoost = pinMuxoutHC;
-        break;
-
-      case MUXOUT_VVT:
-        pinVVT_1 = pinMuxoutHC;
-        break;
-
-      case MUXOUT_VVT2:
-        pinVVT_2 = pinMuxoutHC;
-        break;
-
-      case MUXOUT_TACH:
-        pinTachOut = pinMuxoutHC;
-        break;
-
-      case MUXOUT_OILSOLENOID:
-        ;pinOilSolenoid = pinMuxoutHC;
-        pinVVT_1 = pinMuxoutHC;
-        break;
-
-      case MUXOUT_STARTER:
-        pinStarter = pinMuxoutHC;
-        break;
-
-      default:
-        break;
-    }
-  }
-
-  if( configPage2.pinMapping == 70 )  //For PJSC ver1.0 and 1.10 board
-  {
-    switch (configPage15.analogInputPortSelection)
-    {
-      case ANALOG_INPUT_OFF:
-        break;
-
-      case ANALOG_EXVALVE:
-        pinExValve = pinAnalogInput1;
-        break;
-
-      case ANALOG_O2_SEC:
-        pinO2_2 = pinAnalogInput1;
-        break;
-
-      default:
-        break;
-    }
-  }
-
-  if( configPage2.pinMapping == 70 )
-  {
-    switch (configPage15.analogInputPortSelection2)                   //For PJSC ver1.0 board
-    {
-      case ANALOG_INPUT_OFF:
-        break;
-
-      case ANALOG_BARO:
-        pinBaro = pinAnalogInput2;
-        break;
-
-      case ANALOG_EGT:
-        pinEGT = pinAnalogInput2;
-        break;
-
-      default:
-        break;
-    }
-  }
-//********** [PJSC v1.10] Setup MUX output and Analog input pins **********
 
   /* Reset control is a special case. If reset control is enabled, it needs its initial state set BEFORE its pinMode.
      If that doesn't happen and reset control is in "Serial Command" mode, the Arduino will end up in a reset loop

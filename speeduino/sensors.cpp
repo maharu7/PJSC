@@ -365,7 +365,8 @@ static inline bool isCycleCurrent(const statuses &current, const map_cycle_min_t
 }
 
 TESTABLE_INLINE_STATIC bool cycleMinimumMAPReading(const statuses &current, const config2 &page2, map_cycle_min_t &cycle_min, map_adc_readings_t &sensorReadings) {
-  if (current.RPMdiv100 > page2.mapSwitchPoint) {
+//[PJSC v1.10]  if (current.RPMdiv100 > page2.mapSwitchPoint) {
+  if ((current.RPMdiv100 > page2.mapSwitchPoint) || (configPage15.useMAPasSync == 3) ) {    //[PJSC v1.10]
     //2 revolutions are looked at for 4 stroke. 2 stroke not currently catered for.
     if ( isCycleCurrent(current, cycle_min) ) {
       return cycleMinimumAccumulate(cycle_min, sensorReadings);
@@ -549,7 +550,7 @@ void readMAP(void)
       {
         mapAlgorithmState.cycle_min.minimumUpdated = false;
         // Set mapSync flag to indicate intake stroke detected
-        bool invalidSync = (revolutionOne == false) && ((currentStatus.TPS > 20) || (currentStatus.MAP > 98) || (currentStatus.tpsDOT > 250) || (currentStatus.hasSync == true));
+        bool invalidSync = (revolutionOne == false) && (currentStatus.hasSync == true) && ((currentStatus.TPS > 20) || (currentStatus.MAP > 850) || (currentStatus.tpsDOT > 150) || (currentStatus.tpsDOT < -200) || (currentStatus.RPM > 5000));
         if( !invalidSync ){ mapSync = true; }
       }
     }
