@@ -1224,24 +1224,9 @@ void triggerPri_BasicDistributor(void)
     if( (currentStatus.hasSync == true) || BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC) ) { setFilter(curGap); } //[PJSC v1.10] Recalc the new filter value
     else { triggerFilterTime = 0; } //If we don't yet have sync, ensure that the filter won't prevent future valid pulses from being ignored. 
 
-    if( (configPage15.useMAPasSync == 1) && (mapSync == true) )                                          //[PJSC v1.10] For MAP sync
-    {                                                                                                    // |
-      toothCurrentCount = triggerActualTeeth;                                                            // |
-      revolutionOne = false;                                                                             // |
-      mapSync = false;                                                                                   // |
-    }                                                                                                    // |
-    else if( (configPage15.useMAPasSync == 2) && (mapSync == true) )                                     // |
-    {                                                                                                    // |
-      toothCurrentCount = triggerActualTeeth >> 1;                                                       // |
-      revolutionOne = true;                                                                              // |
-      mapSync = false;                                                                                   // |
-    }                                                                                                    // |
-    else if( (configPage15.useMAPasSync == 3) && (mapSync == true) )                                     // |
-    {                                                                                                    // |
-      toothCurrentCount = triggerActualTeeth;                                                            // |
-      revolutionOne = false;                                                                             // |
-      mapSync = false;                                                                                   // V
-    }                                                                                                    //[PJSC v1.10] Software MAP sync
+    if( (configPage15.useMAPasSync == 1) && (mapSync == true) )      { toothCurrentCount = triggerActualTeeth;      }  //[PJSC v1.10] For MAP sync
+    else if( (configPage15.useMAPasSync == 2) && (mapSync == true) ) { toothCurrentCount = triggerActualTeeth >> 1; }  //[PJSC v1.10] For MAP sync
+    else if( (configPage15.useMAPasSync == 3) && (mapSync == true) ) { toothCurrentCount = triggerActualTeeth;      }  //[PJSC v1.10] For MAP sync
 
     if( (toothCurrentCount == triggerActualTeeth) || (currentStatus.hasSync == false) ) //Check if we're back to the beginning of a revolution
     {
@@ -1251,26 +1236,37 @@ void triggerPri_BasicDistributor(void)
       //[PJSC v1.10]currentStatus.hasSync = true;
       currentStatus.startRevolutions++; //Counter
 
+      //**************************************** [PJSC v1.10] MAP sync ****************************************
       //if Sequential fuel or ignition is in use, further checks are needed before determining sync
-      if( (configPage4.sparkMode != IGN_MODE_SEQUENTIAL) || (configPage2.injLayout != INJ_SEQUENTIAL) )  //[PJSC v1.10] For MAP sync
-      {                                                                                                  // |
-        currentStatus.hasSync = true;                                                                    // |
-        BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC);                                          // |
-      }                                                                                                  // |
-      else                                                                                               // |
-      {                                                                                                  // |
-        if( secondaryToothCount > 0 )                                                                    // |
-        {                                                                                                // |
-          currentStatus.hasSync = true;                                                                  // |
-          BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC);                                        // |
-        }                                                                                                // |
-        else if(currentStatus.hasSync != true) { BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC); } // |
-      }                                                                                                  // |
-      secondaryToothCount = 0;                                                                           // |
-                                                                                                         // |
-      if( configPage15.useMAPasSync == 0 ) { revolutionOne = false; }                                    // V
-      else { revolutionOne = !revolutionOne; }                                                           //[PJSC v1.10] For MAP sync (including software mode)
+      if( (configPage4.sparkMode != IGN_MODE_SEQUENTIAL) || (configPage2.injLayout != INJ_SEQUENTIAL) )
+      {
+        currentStatus.hasSync = true;
+        BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC);
+      }
+      else
+      {
+        if( (secondaryToothCount > 0) || (configPage15.useMAPasSync == 3 && mapSync == true  && (currentStatus.MAP < 95)) )
+        {
+          currentStatus.hasSync = true;
+          BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC);
+        }
+        else if(currentStatus.hasSync != true) { BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC); }
+      }
+      secondaryToothCount = 0;
 
+      if( configPage15.useMAPasSync == 0 ) { revolutionOne = false; }
+      else
+      {
+        if( mapSync == true )
+        {
+          mapSync = false;
+          if( configPage15.useMAPasSync == 1 )     { revolutionOne = false; }
+          else if( configPage15.useMAPasSync == 2 ){ revolutionOne = true;  }
+          else if( configPage15.useMAPasSync == 3 ){ revolutionOne = false; }
+        }
+        else { revolutionOne = !revolutionOne; }
+      }
+      //**************************************** [PJSC v1.10] MAP sync ****************************************
     }
     else
     {
