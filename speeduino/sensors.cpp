@@ -332,9 +332,7 @@ static inline bool cycleMinimumAccumulate(map_cycle_min_t &cycle_min, const map_
   //Check whether the current reading is lower than the running minimum
   if(sensorReadings.mapADC < cycle_min.mapMinimum)
   {
-    cycle_min.lastMapMinimum = cycle_min.mapMinimum;   //[PJSC v1.10] Update last minimun value
     cycle_min.mapMinimum = sensorReadings.mapADC;
-    cycle_min.minimumUpdated = true;                   //[PJSC v1.10] Flag that minimum was updated
 
     //******** [PJSC v1.10] Store MAP minimum for current revolution based on parity ********
     bool currentRevIsEven = ((current.startRevolutions % 2) == 0);
@@ -358,8 +356,6 @@ static inline bool cycleMinimumAccumulate(map_cycle_min_t &cycle_min, const map_
 static inline void reset(const statuses &current, map_cycle_min_t &cycle_min, const map_adc_readings_t &sensorReadings) {
   cycle_min.cycleStartIndex = (uint8_t)current.startRevolutions; //Reset the current rev count
   cycle_min.mapMinimum = sensorReadings.mapADC; //Reset the latest value so the next reading will always be lower
-  cycle_min.lastMapMinimum = sensorReadings.mapADC;    //[PJSC v1.10] Initialize last minimum
-  cycle_min.minimumUpdated = false;                    //[PJSC v1.10] Reset update flag
 
   //****** [PJSC v1.10] Only reset revolution tracking variables if both are valid (comparison completed) ******
   if(cycle_min.rev1Valid && cycle_min.rev2Valid)

@@ -635,6 +635,7 @@ void triggerSetup_missingTooth(void)
   toothOneTime = 0;
   toothOneMinusOneTime = 0;
   MAX_STALL_TIME = ((MICROS_PER_DEG_1_RPM/50U) * triggerToothAngle * (configPage4.triggerMissingTeeth + 1U)); //Minimum 50rpm. (3333uS is the time per degree at 50rpm)
+  mapSync = false;           //[PJSC v1.10] For Software MAP Sync
 
   if( (configPage4.TrigSpeed == CRANK_SPEED) && ( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) || (configPage2.injLayout == INJ_SEQUENTIAL) || (configPage6.vvtEnabled > 0)) ) { BIT_SET(decoderState, BIT_DECODER_HAS_SECONDARY); }
   else { BIT_CLEAR(decoderState, BIT_DECODER_HAS_SECONDARY); }
@@ -701,6 +702,7 @@ void triggerPri_missingTooth(void)
                   if (configPage4.PollLevelPolarity == READ_SEC_TRIGGER()) { revolutionOne = 1; }
                   else { revolutionOne = 0; }
                 }
+                else if( configPage15.useMAPasSync == 3 && mapSync == true ) { revolutionOne = false; }  //[PJSC v1.10] For Software MAP Sync
                 else {revolutionOne = !revolutionOne;} //Flip sequential revolution tracker if poll level is not used
                 toothOneMinusOneTime = toothOneTime;
                 toothOneTime = curTime;
@@ -714,6 +716,14 @@ void triggerPri_missingTooth(void)
                     currentStatus.hasSync = true;
                     BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC); //the engine is fully synced so clear the Half Sync bit                    
                   }
+                  //******************** [PJSC v1.10] For Software MAP Sync ********************
+                  else if(configPage15.useMAPasSync == 3 && mapSync == true  && (currentStatus.MAP < 95))
+                  {
+                    mapSync = false;
+                    currentStatus.hasSync = true;
+                    BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC); //the engine is fully synced so clear the Half Sync bit                    
+                  }
+                  //******************** [PJSC v1.10] For Software MAP Sync ********************
                   else if(currentStatus.hasSync != true) { BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC); } //If there is primary trigger but no secondary we only have half sync.
                 }
                 else { currentStatus.hasSync = true;  BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC); } //If nothing is using sequential, we have sync and also clear half sync bit

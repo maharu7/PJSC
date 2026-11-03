@@ -483,6 +483,7 @@ This is so we can use an unsigned byte (0-255) to represent temperature ranges f
 #define EXTRIG_VIECLE_SPEED       4
 #define EXTRIG_PWM_CAPT           5
 #define EXTRIG_SMART_SHIFT        6
+#define EXTRIG_KNOCK_CONTROL      7
 
 #define DIGITAL_INPUT2_DISABLE    0
 #define DIGITAL_INPUT2_PWM_CAPT   1

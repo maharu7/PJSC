@@ -43,8 +43,6 @@ struct map_cycle_average_t {
 struct map_cycle_min_t {
   uint8_t cycleStartIndex;
   uint16_t mapMinimum;
-  uint16_t lastMapMinimum;      //[PJSC v1.10] For software MAP sync detection
-  bool minimumUpdated;          //[PJSC v1.10] Flag to detect when minimum is updated
   uint16_t rev1MapMinimum;      //[PJSC v1.10] Store MAP minimum for revolution 1
   uint16_t rev2MapMinimum;      //[PJSC v1.10] Store MAP minimum for revolution 2
   bool rev1Valid;               //[PJSC v1.10] Flag to indicate rev1 minimum is valid
