@@ -328,13 +328,27 @@ TESTABLE_INLINE_STATIC bool cycleAverageMAPReading(const statuses &current, cons
   return instanteneousMAPReading();
 }
 
-static inline bool cycleMinimumAccumulate(map_cycle_min_t &cycle_min, const map_adc_readings_t &sensorReadings) {
+static inline bool cycleMinimumAccumulate(map_cycle_min_t &cycle_min, const map_adc_readings_t &sensorReadings, const statuses &current) {
   //Check whether the current reading is lower than the running minimum
   if(sensorReadings.mapADC < cycle_min.mapMinimum)
   {
-    cycle_min.lastMapMinimum = cycle_min.mapMinimum;
+    cycle_min.lastMapMinimum = cycle_min.mapMinimum;   //[PJSC v1.10] Update last minimun value
     cycle_min.mapMinimum = sensorReadings.mapADC;
-    cycle_min.minimumUpdated = true;  //[PJSC v1.10] Flag that minimum was updated
+    cycle_min.minimumUpdated = true;                   //[PJSC v1.10] Flag that minimum was updated
+
+    //******** [PJSC v1.10] Store MAP minimum for current revolution based on parity ********
+    bool currentRevIsEven = ((current.startRevolutions % 2) == 0);
+    if(currentRevIsEven)
+    {
+      cycle_min.rev1MapMinimum = sensorReadings.mapADC;
+      cycle_min.rev1Valid = true;
+    }
+    else
+    {
+      cycle_min.rev2MapMinimum = sensorReadings.mapADC;
+      cycle_min.rev2Valid = true;
+    }
+    //******** [PJSC v1.10] Store MAP minimum for current revolution based on parity ********
   }
 
   // We are *not* ready to derive new maps readings yet
@@ -344,8 +358,18 @@ static inline bool cycleMinimumAccumulate(map_cycle_min_t &cycle_min, const map_
 static inline void reset(const statuses &current, map_cycle_min_t &cycle_min, const map_adc_readings_t &sensorReadings) {
   cycle_min.cycleStartIndex = (uint8_t)current.startRevolutions; //Reset the current rev count
   cycle_min.mapMinimum = sensorReadings.mapADC; //Reset the latest value so the next reading will always be lower
-  cycle_min.lastMapMinimum = sensorReadings.mapADC;  //[PJSC v1.10] Initialize last minimum
-  cycle_min.minimumUpdated = false;  //[PJSC v1.10] Reset update flag
+  cycle_min.lastMapMinimum = sensorReadings.mapADC;    //[PJSC v1.10] Initialize last minimum
+  cycle_min.minimumUpdated = false;                    //[PJSC v1.10] Reset update flag
+
+  //****** [PJSC v1.10] Only reset revolution tracking variables if both are valid (comparison completed) ******
+  if(cycle_min.rev1Valid && cycle_min.rev2Valid)
+  {
+    cycle_min.rev1MapMinimum = sensorReadings.mapADC;
+    cycle_min.rev2MapMinimum = sensorReadings.mapADC;
+    cycle_min.rev1Valid = false;
+    cycle_min.rev2Valid = false;
+  }
+  //****** [PJSC v1.10] Only reset revolution tracking variables if both are valid (comparison completed) ******
 }
 
 static inline bool cycleMinimumEndCycle(const statuses &current, map_cycle_min_t &cycle_min, map_adc_readings_t &sensorReadings) {
@@ -369,7 +393,7 @@ TESTABLE_INLINE_STATIC bool cycleMinimumMAPReading(const statuses &current, cons
   if ((current.RPMdiv100 > page2.mapSwitchPoint) || (configPage15.useMAPasSync == 3) ) {    //[PJSC v1.10]
     //2 revolutions are looked at for 4 stroke. 2 stroke not currently catered for.
     if ( isCycleCurrent(current, cycle_min) ) {
-      return cycleMinimumAccumulate(cycle_min, sensorReadings);
+      return cycleMinimumAccumulate(cycle_min, sensorReadings, current);
     }
       //Reaching here means that the last cycle has completed and the MAP value should be calculated
     return cycleMinimumEndCycle(current, cycle_min, sensorReadings);
@@ -540,18 +564,40 @@ void readMAP(void)
   }
 
   //****************** [PJSC v1.10] Software MAP sync detection ******************
-  // Detect intake stroke by monitoring MAP minimum value
+  // Detect intake stroke by comparing MAP minimum between 2 revolutions
   if(configPage15.useMAPasSync == 3)
   {
     if(configPage2.mapSample == MAPSamplingCycleMinimum)
     {
-      // Check if MAP minimum was updated in this cycle
-      if(mapAlgorithmState.cycle_min.minimumUpdated == true)
+      // Check if both revolution MAP minimums are valid
+      if(mapAlgorithmState.cycle_min.rev1Valid && mapAlgorithmState.cycle_min.rev2Valid)
       {
-        mapAlgorithmState.cycle_min.minimumUpdated = false;
-        // Set mapSync flag to indicate intake stroke detected
-        bool invalidSync = (revolutionOne == false) && (currentStatus.hasSync == true) && ((currentStatus.TPS > 20) || (currentStatus.MAP > 850) || (currentStatus.tpsDOT > 150) || (currentStatus.tpsDOT < -200) || (currentStatus.RPM > 5000));
-        if( !invalidSync ){ mapSync = true; }
+        // Compare the two revolution MAP minimums
+        // The revolution with lower MAP is the intake stroke
+        // Determine if current revolution (based on parity) is the intake stroke
+        bool currentRevIsEven = ((currentStatus.startRevolutions % 2) == 0);
+        bool currentRevIsIntake;
+
+        if(currentRevIsEven)
+        {
+          // Current is even revolution (rev1)
+          currentRevIsIntake = (mapAlgorithmState.cycle_min.rev1MapMinimum < mapAlgorithmState.cycle_min.rev2MapMinimum);
+        }
+        else
+        {
+          // Current is odd revolution (rev2)
+          currentRevIsIntake = (mapAlgorithmState.cycle_min.rev2MapMinimum < mapAlgorithmState.cycle_min.rev1MapMinimum);
+        }
+
+        if(currentRevIsIntake)
+        {
+          bool invalidSync = (currentStatus.hasSync == true) && ((currentStatus.TPS > 20) || (currentStatus.MAP > 85) || (currentStatus.tpsDOT > 100) || (currentStatus.tpsDOT < -100) || (currentStatus.RPM > 5000));
+          if( !invalidSync ){ mapSync = true; }
+        }
+
+        // Reset valid flags after comparison
+        mapAlgorithmState.cycle_min.rev1Valid = false;
+        mapAlgorithmState.cycle_min.rev2Valid = false;
       }
     }
   }
